@@ -1,10 +1,11 @@
-import { Component, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode, RefObject } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import SceneFallback from './SceneFallback'
 
 type IntroFrame = { x: number; y: number; width: number; height: number }
-type SceneProps = { progress: RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null> }
+type SceneProps = { progress: RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
 const vertex = `
   uniform float uTime;
   uniform float uProgress;
@@ -66,7 +67,7 @@ const particleFragment = `
   }
 `
 
-function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, 'anchor'> & { low: boolean; frame: RefObject<IntroFrame> }) {
+function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, 'anchor' | 'onReady' | 'onUnavailable'> & { low: boolean; frame: RefObject<IntroFrame> }) {
   const object = useRef<THREE.Group>(null)
   const { invalidate, camera, size, gl } = useThree()
   const pointer = useRef({ x: 0, y: 0 })
@@ -165,15 +166,29 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
   return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} /></group><points geometry={particleGeometry} material={particleMaterial} frustumCulled={false}/></>
 }
 
-class Boundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
-  state = { failed: false }
-  static getDerivedStateFromError() { return { failed: true } }
-  render() { return this.state.failed ? this.props.fallback : this.props.children }
+// Renderer failures can happen after capability detection, including GPU resets.
+function RendererHealth({ onReady, onUnavailable }: Pick<SceneProps, 'onReady' | 'onUnavailable'>) {
+  const { gl } = useThree()
+  useLayoutEffect(() => {
+    const previous = gl.debug.onShaderError
+    const lost = (event: Event) => { event.preventDefault(); onUnavailable() }
+    gl.debug.onShaderError = () => onUnavailable()
+    gl.domElement.addEventListener('webglcontextlost', lost)
+    let frame = 0
+    const check = () => {
+      if (gl.info.render.frame > 0) onReady()
+      else frame = requestAnimationFrame(check)
+    }
+    frame = requestAnimationFrame(check)
+    return () => {
+      cancelAnimationFrame(frame)
+      gl.debug.onShaderError = previous
+      gl.domElement.removeEventListener('webglcontextlost', lost)
+    }
+  }, [gl, onReady, onUnavailable])
+  return null
 }
-function Fallback() {
-  return <div className="scene-fallback" aria-label="Статичная графическая версия скульптуры"><svg viewBox="0 0 600 600" fill="none">{Array.from({ length: 45 }, (_, i) => <ellipse key={i} cx="300" cy="300" rx={90 + i * 3} ry={180 - i * 2.4} transform={`rotate(${i * 4} 300 300)`} stroke="#b7bdc5" strokeOpacity=".35" strokeWidth=".65" />)}</svg></div>
-}
-export default function Scene({ progress, reduced, paused, anchor }: SceneProps) {
+export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
   const [supported] = useState(() => {
     try {
       const gl = document.createElement('canvas').getContext('webgl2')
@@ -182,6 +197,7 @@ export default function Scene({ progress, reduced, paused, anchor }: SceneProps)
       return true
     } catch { return false }
   })
+  useEffect(() => { if (!supported) onUnavailable() }, [supported, onUnavailable])
   const [visible, setVisible] = useState(!document.hidden)
   const host = useRef<HTMLDivElement>(null)
   const frame = useRef<IntroFrame>({ x: .25, y: 0, width: .5, height: .65 })
@@ -210,9 +226,9 @@ export default function Scene({ progress, reduced, paused, anchor }: SceneProps)
       document.removeEventListener('visibilitychange', visibility)
     }
   }, [anchor])
-  return <div ref={host} className="scene-host"><Boundary fallback={<Fallback />}>{supported ? <Canvas
+  return <div ref={host} className="scene-host">{supported ? <Canvas
     aria-label="Процедурная спираль, переходящая при прокрутке в трёхмерный коридор"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.5]} frameloop="demand"
     gl={{ antialias: !low, alpha: true, powerPreference: 'low-power' }}
-  ><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} /></Canvas> : <div className="fallback-position"><Fallback /></div>}</Boundary></div>
+  ><RendererHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} /></Canvas> : <SceneFallback />}</div>
 }

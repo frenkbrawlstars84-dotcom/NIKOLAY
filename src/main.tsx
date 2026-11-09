@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { motion, MotionConfig, useReducedMotion } from 'motion/react'
 import { ArrowUpRight, ArrowDown, Menu, X, Pause, Play, Plus, Send, MousePointer2, MoveUpRight, Check } from 'lucide-react'
@@ -9,18 +9,20 @@ import { contacts } from './config'
 import FluidText from './FluidText'
 import ProjectGallery from './ProjectGallery'
 import useCinematicFlow from './useCinematicFlow'
-const Scene=lazy(()=>import('./Scene'))
+import SceneLayer from './SceneLayer'
+import type { SceneStatus } from './SceneLayer'
 const capabilities=['Современные лендинги','Сайты для бизнеса','Адаптивные интерфейсы','Интерактивные анимации','Функции и интеграции']
 const demoDescriptions=['Нажмите: идея превращается в действие.','Проведите курсором: интерфейс следует за вами.','Смените формат: композиция подстраивается.','Запустите движение: форма меняет состояние.','Подключите модуль: возможности расширяются.']
 const about='Привет, я Николай. Занимаюсь разработкой современных сайтов для бизнеса. Мне нравится превращать идеи в удобные, привлекательные и технологичные цифровые проекты.'
 function App(){
  const reduced=!!useReducedMotion(); const root=useRef<HTMLDivElement>(null);const progress=useRef(0);const [paused,setPaused]=useState(false);const [menu,setMenu]=useState(false);const anchor=useRef<HTMLDivElement>(null);const [demo,setDemo]=useState([false,false,false,false,false]);
+ const [sceneStatus,setSceneStatus]=useState<SceneStatus>('loading')
  const toggle=(i:number)=>setDemo(v=>v.map((x,n)=>n===i?!x:x))
- useCinematicFlow(root,anchor,progress,reduced)
+ useCinematicFlow(root,anchor,progress,reduced,sceneStatus==='ready')
  const telegram=contacts.telegramUrl
- return <MotionConfig reducedMotion="user"><div ref={root} className="site-root"><AmbientBackground reduced={reduced} paused={paused}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
+ return <MotionConfig reducedMotion="user"><div ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening"><div className="experience-track"><div className="experience-pin">
- <div className="experience-art"><Suspense fallback={<div className="scene-loading">ФОРМА ПРИОБРЕТАЕТ СМЫСЛ</div>}><Scene progress={progress} reduced={reduced} paused={paused} anchor={anchor}/></Suspense></div>
+ <div className="experience-art"><SceneLayer progress={progress} reduced={reduced} paused={paused} anchor={anchor} onStatus={setSceneStatus}/></div>
  <section className="hero shell">
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
    <div className="hero-composition">

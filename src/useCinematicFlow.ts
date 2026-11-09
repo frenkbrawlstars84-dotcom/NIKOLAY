@@ -4,12 +4,20 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
-export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>, anchor: RefObject<HTMLDivElement | null>, progress: RefObject<number>, reduced: boolean) {
+export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>, anchor: RefObject<HTMLDivElement | null>, progress: RefObject<number>, reduced: boolean, sceneReady: boolean) {
   useEffect(() => {
-    const pin = root.current?.querySelector<HTMLElement>('.experience-pin')
-    if (!pin || !anchor.current) return
+    // React StrictMode detaches refs during effect replay. GSAP may evaluate
+    // functional tween values while reverting, so never dereference mutable
+    // React refs in those callbacks. Retain this effect's DOM nodes instead.
+    const rootElement = root.current
+    const anchorElement = anchor.current
+    const pin = rootElement?.querySelector<HTMLElement>('.experience-pin')
+    if (!pin || !anchorElement || !rootElement) return
+    let disposed = false
+    let lastClip = 'inset(0px 0px 0px 50%)'
     const clip = () => {
-      const full = pin.getBoundingClientRect(), art = anchor.current!.getBoundingClientRect()
+      if (disposed || !pin.isConnected || !anchorElement.isConnected) return lastClip
+      const full = pin.getBoundingClientRect(), art = anchorElement.getBoundingClientRect()
       const top = Math.max(0, art.top - full.top), left = Math.max(0, art.left - full.left)
       const right = Math.max(0, full.right - art.right), bottom = Math.max(0, full.bottom - art.bottom)
       pin.style.setProperty('--intro-clip', `inset(${top}px ${right}px ${bottom}px ${left}px)`)
@@ -17,21 +25,25 @@ export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>,
       pin.style.setProperty('--frame-top', `${top}px`)
       pin.style.setProperty('--frame-width', `${art.width}px`)
       pin.style.setProperty('--frame-height', `${art.height}px`)
-      return `inset(${top}px ${right}px ${bottom}px ${left}px)`
+      lastClip = `inset(${top}px ${right}px ${bottom}px ${left}px)`
+      return lastClip
     }
     clip()
-    const observer = new ResizeObserver(() => { clip(); ScrollTrigger.refresh() })
-    observer.observe(anchor.current)
+    const observer = new ResizeObserver(() => { if (!disposed) { clip(); ScrollTrigger.refresh() } })
+    observer.observe(anchorElement)
     const ctx = gsap.context(() => {
       if (reduced) { progress.current = 0; return }
       const media = gsap.matchMedia()
-      media.add('(min-height: 651px)', () => {
-        const copy = root.current!.querySelector<HTMLElement>('.hero-copy')!
+      if (sceneReady) media.add('(min-height: 651px)', () => {
+        if (disposed || !rootElement.isConnected) return
+        const copy = rootElement.querySelector<HTMLElement>('.hero-copy')
+        if (!copy) return
         const transition = gsap.timeline({
           scrollTrigger: {
             trigger: '.experience-track', start: 'top top', end: 'bottom bottom', scrub: .35,
             invalidateOnRefresh: true,
             onUpdate: self => {
+              if (disposed) return
               const hidden = self.progress > .32
               copy.inert = hidden
               if (hidden) copy.setAttribute('aria-hidden', 'true')
@@ -54,6 +66,6 @@ export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>,
       gsap.fromTo('.contact-bottom', { y: 28, opacity: .4 }, { y: 0, opacity: 1, scrollTrigger: { trigger: '.contact', start: 'top 85%', end: 'clamp(top 35%)', scrub: true } })
       return () => media.revert()
     }, root)
-    return () => { observer.disconnect(); ctx.revert() }
-  }, [root, anchor, progress, reduced])
+    return () => { disposed = true; observer.disconnect(); ctx.revert() }
+  }, [root, anchor, progress, reduced, sceneReady])
 }
