@@ -1,10 +1,7 @@
-// Public contact details. Vite environment variables can override these on deploy.
-const telegramUrl = import.meta.env.VITE_TELEGRAM_URL?.trim() || 'https://t.me/yuniorqq'
-const telegramPath = /^https:\/\/t\.me\/([a-zA-Z0-9_+]+)\/?$/.exec(telegramUrl)?.[1]
-const email = import.meta.env.VITE_EMAIL?.trim()
-
+// Public Telegram, confirmed by Nikolay. Can be overridden at build time.
+const configured = import.meta.env.VITE_TELEGRAM_URL?.trim()
+const telegramUrl = configured && /^https:\/\/t\.me\/[a-zA-Z0-9_]+\/?$/.test(configured) ? configured : 'https://t.me/yuniorqq'
 export const contacts = {
-  telegramUrl: telegramPath ? telegramUrl : undefined,
-  telegramLabel: telegramPath ? (telegramPath.startsWith('+') ? `t.me/${telegramPath}` : `@${telegramPath}`) : undefined,
-  email: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : undefined,
+  telegramUrl,
+  telegramLabel: '@' + telegramUrl.replace(/^https:\/\/t\.me\//, '').replace(/\/$/, ''),
 }
