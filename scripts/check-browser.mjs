@@ -49,6 +49,7 @@ async function fallback(page, url) {
   await page.getByRole('link', { name: 'Смотреть демосайт' }).click({ trial: true })
   await page.locator('#contact').scrollIntoViewIfNeeded()
   assert(await page.getByRole('link', { name: '@yuniorqq', exact: true }).isVisible())
+  // Accent failures are local: contacts still work when the hero falls back.
 }
 async function projectNavigation(page, url, linkName, touch = false) {
   const destination = 'https://lambent-pudding-e679ea.netlify.app/'
@@ -95,6 +96,9 @@ try {
     await page.getByRole('button', { name: 'Открыть меню' }).click()
     await page.getByRole('navigation').getByRole('link', { name: 'Контакты' }).click()
     await page.getByRole('link', { name: 'Связаться со мной', exact: true }).click({ trial: true })
+    await page.locator('.accent-cube').scrollIntoViewIfNeeded()
+    await page.locator('.accent-cube[data-accent-status="ready"]').waitFor({ timeout: 15000 })
+    assert.equal(await page.locator('.accent-cube canvas').evaluate(e => getComputedStyle(e).pointerEvents), 'none')
     assert.deepEqual(errors, [], `${url}: unexpected runtime errors`)
     await page.close()
     console.log(`PASS ${url}: StrictMode/reload, scroll, mobile, menu and contacts`)
@@ -124,6 +128,23 @@ try {
     } else await fallback(page, preview)
     await page.close()
     console.log(`PASS ${failure}: static sculpture + visible, usable HTML; no empty pinned scene`)
+  }
+  for (const failure of ['accent-module', 'accent-context']) {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    if (failure === 'accent-module') await page.route('**/assets/AccentScene-*.js', route => route.abort())
+    await healthy(page, preview)
+    await page.locator('.accent-cube').scrollIntoViewIfNeeded()
+    if (failure === 'accent-context') {
+      await page.locator('.accent-cube[data-accent-status="ready"]').waitFor()
+      await page.evaluate(() => document.querySelector('.accent-cube canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext())
+    }
+    await page.locator('.accent-cube[data-accent-status="fallback"]').waitFor()
+    assert(await page.locator('.accent-cube .accent-fallback').isVisible())
+    assert.equal(await page.getByRole('link', { name: 'Связаться со мной', exact: true }).getAttribute('href'), 'https://t.me/yuniorqq')
+    assert.equal(await page.locator('#root h1').count(), 1)
+    await page.getByRole('link', { name: 'Связаться со мной', exact: true }).click({ trial: true })
+    await page.close()
+    console.log(`PASS ${failure}: cube fallback, Telegram and the rest of the app survive`)
   }
   console.log('All browser regressions passed.')
 } finally {

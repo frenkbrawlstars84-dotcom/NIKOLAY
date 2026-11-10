@@ -4,12 +4,14 @@ import { motion, MotionConfig, useReducedMotion } from 'motion/react'
 import { ArrowUpRight, ArrowDown, Menu, X, Pause, Play, Plus, Send, MousePointer2, MoveUpRight, Check } from 'lucide-react'
 import './style.css'
 import './cinematic.css'
+import './cosmic.css'
 import AmbientBackground from './AmbientBackground'
 import { contacts } from './config'
 import FluidText from './FluidText'
 import ProjectGallery from './ProjectGallery'
 import useCinematicFlow from './useCinematicFlow'
 import SceneLayer from './SceneLayer'
+import AccentObject from './AccentObject'
 import type { SceneStatus } from './SceneLayer'
 const capabilities=['Современные лендинги','Сайты для бизнеса','Адаптивные интерфейсы','Интерактивные анимации','Функции и интеграции']
 const demoDescriptions=['Нажмите: идея превращается в действие.','Проведите курсором: интерфейс следует за вами.','Смените формат: композиция подстраивается.','Запустите движение: форма меняет состояние.','Подключите модуль: возможности расширяются.']
@@ -45,7 +47,7 @@ function App(){
  <div className="passage-guides" aria-hidden="true"><span>SCENE 01 → SCENE 02</span><span>SCROLL TO TRAVEL</span><div className="passage-meter"><i/></div></div>
  <div className="passage-copy"><span>ФОРМА МЕНЯЕТСЯ. СМЫСЛ ОСТАЁТСЯ.</span><p>Идея обретает<br/><em>новое измерение.</em></p></div>
  </div></div>
- <section id="about" className="about shell"><div className="section-label"><span>01 — ФИЛОСОФИЯ</span><span>ЧЕЛОВЕК ЗА КОДОМ</span></div><div className="about-body"><span className="about-sign">Идея.<br/>Взаимодействие.<br/>Впечатление.</span><h2 className="about-statement">{about.split(' ').map((word,i)=><span className="about-word" key={i}>{word} </span>)}</h2></div><div className="about-bottom"><span>Меньше лишнего. Больше смысла.</span><ArrowUpRight size={28}/></div></section></div>
+ <section id="about" className="about shell"><div className="section-label"><span>01 — ФИЛОСОФИЯ</span><span>ЧЕЛОВЕК ЗА КОДОМ</span></div><div className="about-body"><div className="about-sign"><span>Идея.<br/>Взаимодействие.<br/>Впечатление.</span><AccentObject kind="signal" reduced={reduced} paused={paused}/></div><h2 className="about-statement">{about.split(' ').map((word,i)=><span className="about-word" key={i}>{word} </span>)}</h2></div><div className="about-bottom"><span>Меньше лишнего. Больше смысла.</span><ArrowUpRight size={28}/></div></section></div>
  <section id="projects" className="work shell"><div className="section-label"><span>02 — ИЗБРАННЫЕ РАБОТЫ</span><span>ЦИФРОВЫЕ ИСТОРИИ</span></div><div className="section-heading"><h2><FluidText>От замысла</FluidText><br/><em><FluidText>к впечатлению.</FluidText></em></h2><p>Исследуйте проекты.<br/>У каждого — свой характер.</p></div><ProjectGallery/></section>
  <section id="capabilities" className="capabilities shell"><div className="section-label"><span>03 — ЛАБОРАТОРИЯ ВОЗМОЖНОСТЕЙ</span><span>ПОПРОБУЙТЕ САМИ</span></div><div className="section-heading"><h2><FluidText>Не просто смотреть.</FluidText><br/><em><FluidText>Взаимодействовать.</FluidText></em></h2><p>Маленькие эксперименты.<br/>Большие возможности для вашего сайта.</p></div><div className="lab-grid">{capabilities.map((name,i)=><article className={`lab lab-${i} ${demo[i]?'is-on':''}`} key={name}><div className="lab-demo">{i===0?<motion.button className="magnetic" whileHover={reduced?{}:{scale:1.08}} whileTap={reduced?{}:{scale:.9}} onClick={()=>toggle(i)}>{demo[i]?'Идея в движении':'Нажмите'}<ArrowUpRight size={17}/></motion.button>:i===1?<button className="tilt-demo" onClick={()=>toggle(i)} onPointerMove={e=>{if(reduced)return;const r=e.currentTarget.getBoundingClientRect();e.currentTarget.style.transform=`perspective(400px) rotateY(${(e.clientX-r.left-r.width/2)/6}deg) rotateX(${-(e.clientY-r.top-r.height/2)/6}deg)`}} onPointerLeave={e=>{e.currentTarget.style.transform=''}} aria-label="Взаимодействовать с карточкой"><span>YOUR BUSINESS</span><MoveUpRight/><i/>{demo[i]?'В центре внимания':'Новый угол зрения'}</button>:i===2?<button className="responsive-demo" onClick={()=>toggle(i)} aria-label="Сменить размер интерфейса"><div><i/><i/><i/><span/></div><small>{demo[i]?'МОБИЛЬНЫЙ':'ДЕСКТОП'} ↔</small></button>:i===3?<button className="morph-demo" onClick={()=>toggle(i)} aria-label="Изменить форму анимации"><div>{Array.from({length:12},(_,n)=><i key={n} style={{'--n':n} as React.CSSProperties}/>)}</div><small>{demo[i]?'ФОРМА':'ДВИЖЕНИЕ'} ↗</small></button>:<button className="integration-demo" onClick={()=>toggle(i)} aria-label="Переключить подключение модуля"><span>САЙТ</span><i/><span>{demo[i]?<Check size={18}/>:<Plus size={18}/>}</span><small>{demo[i]?'МОДУЛЬ ПОДКЛЮЧЁН':'ДОБАВИТЬ МОДУЛЬ'}</small></button>}</div><div className="lab-info"><span>0{i+1}</span><h3>{name}</h3><p>{demoDescriptions[i]}</p></div></article>)}</div><p className="lab-note"><MousePointer2 size={13}/> Интерактивные эксперименты — примеры возможностей, а не готовые коммерческие интеграции.</p></section>
  <section id="contact" className={`contact ${paused?'motion-paused':''}`}><div className="shell">
@@ -53,9 +55,9 @@ function App(){
    <div className="contact-orbit" aria-hidden="true"><span/><span/><span/></div>
    <h2 className="contact-title"><FluidText>Давайте создадим</FluidText><br/>что-то <em><FluidText>необычное.</FluidText></em><ArrowUpRight strokeWidth={.6}/></h2>
    <div className="contact-bottom"><p>Расскажите о своей идее, а я помогу<br/>воплотить её в современный сайт.</p>
-     <div className="contact-links"><div className="telegram-address"><a className="telegram-username" href={telegram} target="_blank" rel="noopener noreferrer">{contacts.telegramLabel}<ArrowUpRight size={18}/></a><a className="telegram-direct" href={telegram} target="_blank" rel="noopener noreferrer">{telegram.replace('https://','')}</a></div>
+     <div className="contact-cube-layout"><AccentObject kind="cube" reduced={reduced} paused={paused}/><div className="contact-links"><div className="telegram-address"><a className="telegram-username" href={telegram} target="_blank" rel="noopener noreferrer">{contacts.telegramLabel}<ArrowUpRight size={18}/></a><a className="telegram-direct" href={telegram} target="_blank" rel="noopener noreferrer">{telegram.replace('https://','')}</a></div>
        <a className="button light contact-cta" href={telegram} target="_blank" rel="noopener noreferrer"><Send size={16}/>Связаться со мной<ArrowUpRight size={18}/></a>
-     </div>
+     </div></div>
    </div>
  </div></section></main><footer className="shell footer"><a className="brand" href="#">NIKOLAY<span>✳</span></a><span>СОЗДАНО НА ПЕРЕСЕЧЕНИИ ДИЗАЙНА И ТЕХНОЛОГИЙ</span><a href="#">НАВЕРХ <ArrowUpRight size={14}/></a></footer></div></MotionConfig>
 }

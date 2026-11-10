@@ -62,7 +62,7 @@ export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>,
         return () => { copy.inert = false; copy.removeAttribute('aria-hidden'); progress.current = 0 }
       })
       gsap.fromTo('.about-body', { y: 75, rotateX: 8, scale: .97 }, { y: 0, rotateX: 0, scale: 1, ease: 'none', scrollTrigger: { trigger: '.about', start: 'top bottom', end: 'top 35%', scrub: .45 } })
-      gsap.fromTo('.about-word', { opacity: .2 }, { opacity: 1, stagger: .08, ease: 'none', scrollTrigger: { trigger: '.about-statement', start: 'top 85%', end: 'bottom 55%', scrub: true } })
+      gsap.fromTo('.about-word', { opacity: .42 }, { opacity: 1, stagger: .08, ease: 'none', scrollTrigger: { trigger: '.about-statement', start: 'top 85%', end: 'bottom 55%', scrub: true } })
       gsap.fromTo('.contact-bottom', { y: 28, opacity: .4 }, { y: 0, opacity: 1, scrollTrigger: { trigger: '.contact', start: 'top 85%', end: 'clamp(top 35%)', scrub: true } })
       return () => media.revert()
     }, root)

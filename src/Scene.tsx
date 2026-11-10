@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import SceneFallback from './SceneFallback'
+import CanvasHealth from './CanvasHealth'
 
 type IntroFrame = { x: number; y: number; width: number; height: number }
 type SceneProps = { progress: RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
@@ -53,7 +54,7 @@ const particleVertex = `
     p.xy += vec2(sin(p.z + uTime * .12), cos(p.z * .3 + uTime * .1)) * .06;
     vec4 mv = modelViewMatrix * vec4(p, 1.);
     float depth = -mv.z;
-    vAlpha = smoothstep(.32, .55, uProgress) * (1. - smoothstep(.88, 1., uProgress));
+    vAlpha = (.16 + .84 * smoothstep(.28, .55, uProgress)) * (1. - smoothstep(.88, 1., uProgress));
     vAlpha *= smoothstep(.1, 1., depth) * (1. - smoothstep(18., 32., depth));
     gl_PointSize = clamp(15. / max(depth, .5), 1., 4.) * uDpr;
     gl_Position = projectionMatrix * mv;
@@ -156,8 +157,8 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
       object.current.position.set(frame.current.x * worldWidth * (1 - center), frame.current.y * worldHeight * (1 - center), 0)
       object.current.scale.setScalar(THREE.MathUtils.lerp(introScale, 1, center))
       object.current.rotation.set(
-        (.3 + (reduced ? 0 : pointer.current.y * .1)) * (1 - center),
-        (-.4 + (reduced ? 0 : pointer.current.x * .13 + Math.sin(clock.current * .07) * .15)) * (1 - center),
+        (.3 + (reduced ? 0 : pointer.current.y * .15)) * (1 - center),
+        (-.4 + (reduced ? 0 : pointer.current.x * .2 + Math.sin(clock.current * .07) * .15)) * (1 - center),
         -.35 * (1 - center),
       )
     }
@@ -166,28 +167,6 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
   return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} /></group><points geometry={particleGeometry} material={particleMaterial} frustumCulled={false}/></>
 }
 
-// Renderer failures can happen after capability detection, including GPU resets.
-function RendererHealth({ onReady, onUnavailable }: Pick<SceneProps, 'onReady' | 'onUnavailable'>) {
-  const { gl } = useThree()
-  useLayoutEffect(() => {
-    const previous = gl.debug.onShaderError
-    const lost = (event: Event) => { event.preventDefault(); onUnavailable() }
-    gl.debug.onShaderError = () => onUnavailable()
-    gl.domElement.addEventListener('webglcontextlost', lost)
-    let frame = 0
-    const check = () => {
-      if (gl.info.render.frame > 0) onReady()
-      else frame = requestAnimationFrame(check)
-    }
-    frame = requestAnimationFrame(check)
-    return () => {
-      cancelAnimationFrame(frame)
-      gl.debug.onShaderError = previous
-      gl.domElement.removeEventListener('webglcontextlost', lost)
-    }
-  }, [gl, onReady, onUnavailable])
-  return null
-}
 export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
   const [supported] = useState(() => {
     try {
@@ -230,5 +209,5 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
     aria-label="Процедурная спираль, переходящая при прокрутке в трёхмерный коридор"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.5]} frameloop="demand"
     gl={{ antialias: !low, alpha: true, powerPreference: 'low-power' }}
-  ><RendererHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} /></Canvas> : <SceneFallback />}</div>
+  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} /></Canvas> : <SceneFallback />}</div>
 }
