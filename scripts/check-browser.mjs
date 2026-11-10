@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
+import { checkObjects } from './check-objects.mjs'
 
 // Regression: production alone missed a StrictMode cleanup crash in npm run dev.
 const servers = []
@@ -46,7 +47,7 @@ async function fallback(page, url) {
   assert.equal(await page.locator('.hero-copy').evaluate(e => e.inert), false)
   assert.equal(await page.locator('.experience-pin').evaluate(e => getComputedStyle(e).position), 'relative')
   await page.getByRole('link', { name: 'Мои проекты', exact: true }).click()
-  await page.getByRole('link', { name: 'Смотреть демосайт' }).click({ trial: true })
+  await page.getByRole('link', { name: 'Посмотреть сайт' }).click({ trial: true })
   await page.locator('#contact').scrollIntoViewIfNeeded()
   assert(await page.getByRole('link', { name: '@yuniorqq', exact: true }).isVisible())
   // Accent failures are local: contacts still work when the hero falls back.
@@ -126,7 +127,7 @@ try {
     assert.equal(await page.locator('.horizon-shade').evaluate(e => Number(getComputedStyle(e).opacity)), 0)
     await projectNavigation(page, url, 'Открыть сайт NEXORA DIGITAL')
     await page.setViewportSize({ width: 390, height: 844 })
-    await projectNavigation(page, url, 'Смотреть сайт', true)
+    await projectNavigation(page, url, 'Посмотреть сайт', true)
     await healthy(page, url)
     await page.getByRole('button', { name: 'Открыть меню' }).click()
     await page.getByRole('navigation').getByRole('link', { name: 'Контакты' }).click()
@@ -249,6 +250,7 @@ try {
     await page.close()
     console.log('PASS deferred TON shader failure: cinematic shade disabled, visible HTML and contacts survive')
   }
+  await checkObjects(browser, preview)
   console.log('All browser regressions passed.')
 } finally {
   await browser?.close()

@@ -7,8 +7,10 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
+    "capture:projects": "node scripts/capture-projects.mjs",
+    "check:captures": "node scripts/check-project-captures.mjs",
     "test:browser": "npm run test:models && npm run build && node scripts/check-browser.mjs",
-    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/tonTravel.test.ts",
+    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/tonTravel.test.ts",
     "test:rubik": "node --experimental-strip-types --test tests/rubik.test.ts"
   },
   "dependencies": {

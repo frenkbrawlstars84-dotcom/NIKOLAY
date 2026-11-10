@@ -6,6 +6,7 @@ import SceneFallback from './SceneFallback'
 import CanvasHealth from './CanvasHealth'
 import BlackHole from './BlackHole'
 import { journeyProgress, cameraDistance } from './tonTravel'
+import useSceneBudget from './useSceneBudget'
 
 type IntroFrame = { x: number; y: number; width: number; height: number }
 type SceneProps = { progress: RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
@@ -174,6 +175,7 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
   useEffect(() => { if (!supported) onUnavailable() }, [supported, onUnavailable])
   const [visible, setVisible] = useState(!document.hidden)
   const host = useRef<HTMLDivElement>(null)
+  const ownsFrame = useSceneBudget(host, supported)
   const frame = useRef<IntroFrame>({ x: .25, y: 0, width: .5, height: .65 })
   const [inView, setInView] = useState(true)
   const [low, setLow] = useState(() => matchMedia('(max-width: 900px)').matches || navigator.hardwareConcurrency <= 4)
@@ -200,9 +202,9 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
       document.removeEventListener('visibilitychange', visibility)
     }
   }, [anchor])
-  return <div ref={host} className="scene-host">{supported ? <Canvas
+  return <div ref={host} className="scene-host" data-scene-running={ownsFrame && !reduced && !paused && visible && inView}>{supported ? <Canvas
     aria-label="Спираль, пространственный туннель и проход через чёрную дыру TON 618"
-    camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView ? 'demand' : 'always'}
+    camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView || !ownsFrame ? 'demand' : 'always'}
     gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
+  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
 }
