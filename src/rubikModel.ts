@@ -37,7 +37,7 @@ export class RubikController {
   completedTurns = 0
   idle = 0
   sequenceIndex = 0
-  readonly duration = 1.25
+  readonly duration = 1.8
   request(move: Move = { axis: 'y', layer: 1, direction: 1 }) {
     if (this.queue.length < 8) this.queue.push(move)
   }
@@ -51,7 +51,7 @@ export class RubikController {
       if (this.queue.length) this.active = { move: this.queue.shift()!, elapsed: 0 }
       else if (automatic) {
         this.idle += delta
-        if (this.idle >= 2.6) { this.active = { move: sequence[this.sequenceIndex++ % sequence.length], elapsed: 0 }; this.idle = 0 }
+        if (this.idle >= 6.5) { this.active = { move: sequence[this.sequenceIndex++ % sequence.length], elapsed: 0 }; this.idle = 0 }
       }
     }
     if (!this.active) return
@@ -64,6 +64,6 @@ export class RubikController {
   get angle() {
     if (!this.active) return 0
     const t = this.active.elapsed / this.duration
-    return t * t * (3 - 2 * t) * Math.PI / 2 * this.active.move.direction
+    return t * t * t * (t * (t * 6 - 15) + 10) * Math.PI / 2 * this.active.move.direction
   }
 }

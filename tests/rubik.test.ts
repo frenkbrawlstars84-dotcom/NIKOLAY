@@ -39,9 +39,9 @@ test('2,000 mixed turns preserve an integer lattice with no overlap or sticker d
  for(let i=0;i<2000;i++){const move:Move={axis:axes[i%3],layer:i%2?1:-1,direction:i%5?1:-1};commitTurn(cells,move);valid(cells)}
 })
 test('animated quarter turn commits once, holds its new state, and never rebounds',()=>{
- const model=new RubikController();model.request();model.advance(.625,false)
+ const model=new RubikController();model.request();model.advance(model.duration / 2,false)
  assert(model.angle>0&&model.angle<Math.PI/2);assert.equal(model.completedTurns,0)
- model.advance(.625,false);assert.equal(model.completedTurns,1);assert.equal(model.active,null)
+ model.advance(model.duration / 2,false);assert.equal(model.completedTurns,1);assert.equal(model.active,null)
  const committed=JSON.stringify(model.cells);model.advance(10,false);assert.equal(JSON.stringify(model.cells),committed)
  valid(model.cells)
 })

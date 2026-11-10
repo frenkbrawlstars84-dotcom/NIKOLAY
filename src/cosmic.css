@@ -25,8 +25,8 @@
 .contact-title{z-index:1}
 .contact-bottom{align-items:center;position:relative;z-index:2}
 .contact-bottom>p{max-width:300px;flex-shrink:0}
-.contact-cube-layout{display:grid;grid-template-columns:minmax(0,375px) minmax(250px,1fr);gap:32px;align-items:center;margin-left:auto;min-width:0}
-.accent-cube{width:375px;justify-self:center;margin-inline:auto}
+.contact-cube-layout{display:grid;grid-template-columns:minmax(0,400px) minmax(250px,1fr);gap:32px;align-items:center;margin-left:auto;min-width:0}
+.accent-cube{width:400px;justify-self:center;margin-inline:auto}
 .accent-cube .accent-stage{height:auto;aspect-ratio:25/27}
 .accent-cube figcaption{margin-top:-8px;font-size:5.5px;letter-spacing:1.4px}
 .contact-cube-layout .contact-links{min-width:0;gap:23px}

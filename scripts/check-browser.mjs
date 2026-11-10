@@ -76,6 +76,30 @@ try {
   browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, args: ['--enable-unsafe-swiftshader'] })
   for (const url of [dev, preview]) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, hasTouch: true })
+    await page.addInitScript(() => {
+      window.__sceneTargets = []
+      window.__sampleTon = false
+      window.__tonLight = null
+      for (const method of ['drawElements', 'drawArrays']) {
+        const draw = WebGL2RenderingContext.prototype[method]
+        WebGL2RenderingContext.prototype[method] = function(...args) {
+          const result = draw.apply(this,args)
+          if (window.__sampleTon && this.canvas.closest('.experience-art') && this.getParameter(this.FRAMEBUFFER_BINDING)) {
+            const viewport = this.getParameter(this.VIEWPORT), width = Math.floor(viewport[2] * .6)
+            const pixels = new Uint8Array(width * 4)
+            this.readPixels(Math.floor(viewport[2] * .2), Math.floor(viewport[3] * .48), width, 1, this.RGBA, this.UNSIGNED_BYTE, pixels)
+            window.__tonLight = pixels.some((value,i) => i % 4 !== 3 && value > 64)
+            window.__sampleTon = false
+          }
+          return result
+        }
+      }
+      const original = WebGL2RenderingContext.prototype.texImage2D
+      WebGL2RenderingContext.prototype.texImage2D = function(...args) {
+        if (this.canvas.closest('.experience-art') && args.length === 9 && args[3] > 1 && args[4] > 1) window.__sceneTargets.push([args[3], args[4]])
+        return original.apply(this,args)
+      }
+    })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -86,8 +110,14 @@ try {
       const rect = document.querySelector('.experience-track').getBoundingClientRect()
       window.scrollTo(0, scrollY + rect.top + (rect.height - innerHeight) * v)
     }, value)
+    await page.evaluate(() => { window.__sampleTon = true })
     for (const value of [.32, .53, .68, .8, .92]) { await phase(value); await page.waitForTimeout(550) }
+    assert.equal(await page.evaluate(() => window.__tonLight), true, 'TON actually draws luminous gas after StrictMode replay')
     assert.equal(await page.locator('.scene-layer').getAttribute('data-scene-status'), 'ready')
+    assert(await page.evaluate(() => {
+      const canvas = document.querySelector('.experience-art canvas')
+      return window.__sceneTargets.some(([w,h]) => w === canvas.width && h === canvas.height)
+    }), 'TON base image renders at the full canvas resolution')
     assert.equal(await page.locator('.opening').evaluate(e => e.nextElementSibling.id), 'projects')
     assert.equal(await page.locator('#about').count(), 1)
     for (const value of [.1, .8, .2, .95, 1, 0]) { await phase(value); await page.waitForTimeout(30) }
@@ -165,60 +195,46 @@ try {
   {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
     await page.addInitScript(() => {
-      window.__cubeBuffers = { body: null, colors: null }
+      window.__cubeStats = { counts: [], frames: 0, uploads: 0, lastBodyCount: 0 }
       const proto = WebGL2RenderingContext.prototype
-      for (const method of ['bufferData', 'bufferSubData']) {
+      for (const method of ['drawElementsInstanced', 'drawArraysInstanced']) {
         const original = proto[method]
         proto[method] = function(...args) {
-          const data = args[method === 'bufferData' ? 1 : 2]
-          if (this.canvas.closest('.accent-cube') && data instanceof Float32Array) {
-            if (data.length === 416) window.__cubeBuffers.body = Array.from(data)
-            if (data.length === 162) window.__cubeBuffers.colors = Array.from(data)
+          if (this.canvas.closest('.accent-cube')) {
+            const count = args.at(-1), stats = window.__cubeStats
+            stats.counts.push(count)
+            if (count === 26 || count === 17) { stats.lastBodyCount = count; stats.frames++ }
           }
           return original.apply(this, args)
         }
+      }
+      const upload = proto.bufferSubData
+      proto.bufferSubData = function(...args) {
+        if (this.canvas.closest('.accent-cube') && args[2] instanceof Float32Array && [416,144,864,432].includes(args[2].length)) window.__cubeStats.uploads++
+        return upload.apply(this, args)
       }
     })
     await healthy(page, preview)
     await page.locator('.accent-cube').scrollIntoViewIfNeeded()
     await page.locator('.accent-cube[data-accent-status="ready"]').waitFor()
-    await page.waitForFunction(() => window.__cubeBuffers.body && window.__cubeBuffers.colors)
-    const initial = await page.evaluate(() => window.__cubeBuffers.body)
-    let previous = initial
     assert.equal(await page.locator('.accent-cube button').count(), 0, 'Cube has no controls')
-    for (let turn = 0; turn < 2; turn++) {
-      // Observe real autonomous turns in the GPU instance buffer. Wait for the
-      // committed quarter turn, rather than sampling an intermediate quaternion.
-      await page.waitForFunction(before => {
-        const values = window.__cubeBuffers.body
-        return values.some((value, i) => Math.abs(value - before[i]) > .1)
-          && values.every(value => Math.abs(value - Math.round(value)) < 1e-5)
-      }, previous, { timeout: 15000 })
-      const matrices = await page.evaluate(() => window.__cubeBuffers.body)
-      let changed = 0
-      const centers = []
-      for (let cell = 0; cell < 26; cell++) {
-        if (matrices.slice(cell * 16, cell * 16 + 16).some((v, i) => Math.abs(v - previous[cell * 16 + i]) > 1e-5)) changed++
-        const position = matrices.slice(cell * 16 + 12, cell * 16 + 15)
-        assert(position.every(v => Math.abs(v - Math.round(v)) < 1e-5))
-        centers.push(position.map(Math.round).join(','))
-      }
-      assert.equal(changed, 9, 'A face turn updates exactly nine rendered cubies')
-      assert.equal(new Set(centers).size, 26)
-      await page.waitForTimeout(200)
-      assert.deepEqual(await page.evaluate(() => window.__cubeBuffers.body), matrices, 'The completed layer holds its new position')
-      previous = matrices
-    }
-    const colors = await page.evaluate(() => window.__cubeBuffers.colors)
-    for (let i = 0; i < colors.length; i += 3) assert(colors[i] > .8 && Math.abs(colors[i] - colors[i + 1]) < 1e-5 && Math.abs(colors[i] - colors[i + 2]) < 1e-5, 'Every sticker is white')
+    assert.equal(await page.locator('.accent-cube canvas').evaluate(c => c.getContext('webgl2').getContextAttributes().antialias), true)
+    await page.waitForFunction(() => window.__cubeStats.lastBodyCount === 17, null, { timeout: 25000 })
+    const before = await page.evaluate(() => ({ ...window.__cubeStats }))
+    await page.waitForTimeout(300)
+    const during = await page.evaluate(() => ({ ...window.__cubeStats }))
+    assert.equal(during.uploads, before.uploads, 'Layer rotation uploads no instance matrices between turn boundaries')
+    assert(during.frames > before.frames, 'The pivot continues rendering between turn boundaries')
+    await page.waitForFunction(() => window.__cubeStats.lastBodyCount === 26, null, { timeout: 15000 })
+    const counts = await page.evaluate(() => window.__cubeStats.counts)
+    for (const count of [26,54,17,9,33,21]) assert(counts.includes(count), `Expected GPU batch of ${count} instances`)
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.waitForFunction(() => getComputedStyle(document.querySelector('.experience-pin')).position === 'relative')
-    await page.waitForTimeout(200)
-    const reduced = await page.evaluate(() => window.__cubeBuffers.body)
-    await page.waitForTimeout(3000)
-    assert.deepEqual(await page.evaluate(() => window.__cubeBuffers.body), reduced, 'Reduced motion stops automatic turns')
+    await page.waitForTimeout(400)
+    const stopped = await page.evaluate(() => window.__cubeStats.frames)
+    await page.waitForTimeout(1200)
+    assert(await page.evaluate(before => window.__cubeStats.frames - before <= 1, stopped), 'Reduced motion stops continuous rendering; one pending resize redraw is allowed')
     await page.close()
-    console.log('PASS automatic cube GPU matrices: 26 centers, 9 cubies/turn, white stickers, no controls and reduced motion')
+    console.log('PASS cube GPU groups: 17+9 cubies, 54 white stickers, no per-frame matrix uploads, antialiasing and reduced motion')
   }
   {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })

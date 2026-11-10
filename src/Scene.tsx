@@ -84,15 +84,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
   }, [reduced, paused])
   useEffect(() => {
     invalidate()
-    if (reduced || paused) return
-    let raf = 0, last = 0
-    const tick = (now: number) => {
-      if (now - last >= 1000 / (low ? 30 : 60) - .5) { invalidate(); last = now }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [invalidate, reduced, paused, low])
+  }, [invalidate, reduced, paused])
 
   const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: vertex, fragmentShader: fragment, transparent: true,
@@ -210,7 +202,7 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
   }, [anchor])
   return <div ref={host} className="scene-host">{supported ? <Canvas
     aria-label="Спираль, пространственный туннель и проход через чёрную дыру TON 618"
-    camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.5]} frameloop="demand"
-    gl={{ antialias: !low, alpha: true, powerPreference: 'low-power' }}
+    camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView ? 'demand' : 'always'}
+    gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
   ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
 }

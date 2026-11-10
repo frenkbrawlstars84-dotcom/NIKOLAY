@@ -1,22 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import type { AccentKind } from './AccentObject'
 import CanvasHealth from './CanvasHealth'
-import { RubikController, selected } from './rubikModel'
+import { RubikController } from './rubikModel'
+import { createRubikRig } from './rubikRig'
 
 type Props = { kind: AccentKind; reduced: boolean; paused: boolean; low: boolean; onReady: () => void; onUnavailable: () => void }
-function MotionDriver({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low'>) {
+function MotionDriver({ paused, reduced }: Pick<Props, 'paused' | 'reduced'>) {
   const { invalidate } = useThree()
   useEffect(() => {
     invalidate()
-    if (paused || reduced) return
-    let frame = 0, last = 0
-    const tick = (now: number) => { if (now - last >= 1000 / (low ? 24 : 45) - .5) { invalidate(); last = now }; frame = requestAnimationFrame(tick) }
-    frame = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frame)
-  }, [invalidate, paused, reduced, low])
+  }, [invalidate, paused, reduced])
   return null
 }
 function Studio({ low, monochrome }: { low: boolean; monochrome: boolean }) {
@@ -49,72 +44,32 @@ function usePose(paused: boolean, reduced: boolean) {
   return { clock, pointer }
 }
 function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low'>) {
-  const group = useRef<THREE.Group>(null), bodies = useRef<THREE.InstancedMesh>(null), stickers = useRef<THREE.InstancedMesh>(null)
+  const group = useRef<THREE.Group>(null)
   const { clock, pointer } = usePose(paused, reduced)
   const controller = useMemo(() => new RubikController(), [])
-  const resources = useMemo(() => {
-    const body = new RoundedBoxGeometry(.97, .97, .97, low ? 1 : 2, .075)
-    const sticker = new RoundedBoxGeometry(.915, .915, .055, low ? 1 : 2, .025)
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: '#080808', metalness: .18, roughness: .26 })
-    const stickerMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: .06, roughness: .21 })
-    const faces: { cubie: number; normal: THREE.Vector3; q: THREE.Quaternion; color: THREE.Color }[] = []
-    const normals = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
-    const colors = Array(6).fill('#f5f5f5')
-    for (const cell of controller.cells) normals.forEach((normal, side) => {
-      const n = new THREE.Vector3(normal[0], normal[1], normal[2])
-      if (cell.home[0] * n.x + cell.home[1] * n.y + cell.home[2] * n.z !== 1) return
-      faces.push({ cubie: cell.id, normal: n, q: new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), n), color: new THREE.Color(colors[side]) })
-    })
-    return { body, sticker, bodyMaterial, stickerMaterial, faces }
-  }, [low, controller])
-  const helper = useMemo(() => ({ object: new THREE.Object3D(), matrix: new THREE.Matrix4(), rotation: new THREE.Quaternion(), axis: new THREE.Vector3(), poses: Array.from({ length: 26 }, () => ({ position: new THREE.Vector3(), q: new THREE.Quaternion() })) }), [])
-  const update = () => {
-    if (!bodies.current || !stickers.current) return
-    const move = controller.active?.move
-    helper.axis.set(move?.axis === 'x' ? 1 : 0, move?.axis === 'y' ? 1 : 0, move?.axis === 'z' ? 1 : 0)
-    helper.rotation.setFromAxisAngle(helper.axis, controller.angle)
-    for (const cell of controller.cells) {
-      const pose = helper.poses[cell.id], m = cell.orientation
-      pose.position.set(...cell.position)
-      helper.matrix.set(m[0], m[1], m[2], 0, m[3], m[4], m[5], 0, m[6], m[7], m[8], 0, 0, 0, 0, 1)
-      pose.q.setFromRotationMatrix(helper.matrix)
-      if (move && selected(cell, move)) { pose.position.applyQuaternion(helper.rotation); pose.q.premultiply(helper.rotation) }
-      helper.object.position.copy(pose.position); helper.object.quaternion.copy(pose.q); helper.object.updateMatrix()
-      bodies.current.setMatrixAt(cell.id, helper.object.matrix)
-    }
-    resources.faces.forEach((face, i) => {
-      const pose = helper.poses[face.cubie]
-      helper.object.position.copy(face.normal).multiplyScalar(.502).applyQuaternion(pose.q).add(pose.position)
-      helper.object.quaternion.copy(pose.q).multiply(face.q); helper.object.updateMatrix()
-      stickers.current!.setMatrixAt(i, helper.object.matrix)
-    })
-    bodies.current.instanceMatrix.needsUpdate = true; stickers.current.instanceMatrix.needsUpdate = true
-  }
+  const rig = useMemo(() => createRubikRig(controller.cells, low), [controller, low])
+  const smoothPointer = useRef({ x: 0, y: 0 })
   useLayoutEffect(() => {
-    bodies.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage); stickers.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
-    resources.faces.forEach((face, i) => stickers.current?.setColorAt(i, face.color))
-    if (stickers.current?.instanceColor) stickers.current.instanceColor.needsUpdate = true
-    update()
-  }, [resources])
-  useLayoutEffect(() => {
-    if (reduced) { controller.finishPending(); update() }
-  }, [reduced, controller, resources])
-  useEffect(() => {
-    const bodyMesh = bodies.current, stickerMesh = stickers.current
-    return () => { bodyMesh?.dispose(); stickerMesh?.dispose(); resources.body.dispose(); resources.sticker.dispose(); resources.bodyMaterial.dispose(); resources.stickerMaterial.dispose() }
-  }, [resources])
+    if (reduced) controller.finishPending()
+    rig.sync(controller.active?.move ?? null)
+  }, [reduced, controller, rig])
+  useEffect(() => () => rig.dispose(), [rig])
   useFrame((_, delta) => {
-    const dt = Math.min(delta, .06)
-    if (!paused && !reduced) { clock.current += dt; controller.advance(dt) }
-    update()
-    const t = clock.current
+    if (paused || reduced) return
+    const dt = Math.min(delta, .05)
+    clock.current += dt
+    controller.advance(dt)
+    const move = controller.active?.move ?? null
+    if (move !== rig.currentMove) rig.sync(move)
+    rig.rotate(controller.angle)
+    smoothPointer.current.x = THREE.MathUtils.damp(smoothPointer.current.x, pointer.current.x, 4, dt)
+    smoothPointer.current.y = THREE.MathUtils.damp(smoothPointer.current.y, pointer.current.y, 4, dt)
     if (group.current) {
-      group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, .4 + (reduced ? 0 : pointer.current.y * .13 + Math.sin(t * .2) * .05), 3, dt)
-      group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -.55 + (reduced ? 0 : t * .095 + pointer.current.x * .22), 3, dt)
-      group.current.position.y = 0
+      group.current.rotation.x = .4 + smoothPointer.current.y * .1 + Math.sin(clock.current * .17) * .025
+      group.current.rotation.y = -.55 + clock.current * .065 + smoothPointer.current.x * .16
     }
   })
-  return <group ref={group} rotation={[.4, -.55, .04]}><instancedMesh ref={bodies} args={[resources.body, resources.bodyMaterial, 26]} dispose={null}/><instancedMesh ref={stickers} args={[resources.sticker, resources.stickerMaterial, 54]} dispose={null}/></group>
+  return <group ref={group} rotation={[.4, -.55, .02]}><primitive object={rig.root} dispose={null}/></group>
 }
 function Signal({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low'>) {
   const group = useRef<THREE.Group>(null)
@@ -134,8 +89,8 @@ export default function AccentScene(props: Props) {
   }, [])
   useEffect(() => { if (!supported) props.onUnavailable() }, [supported, props.onUnavailable])
   if (!supported) return null
-  return <Canvas camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop="demand" dpr={props.low ? 1 : [1, 1.25]} gl={{ antialias: !props.low, alpha: true, powerPreference: 'low-power' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : 'Хромированная пространственная скульптура'}>
-    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced} low={props.low}/><Studio low={props.low} monochrome={props.kind === 'cube'}/>
+  return <Canvas camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop={props.paused || props.reduced ? 'demand' : 'always'} dpr={props.low ? [1, 1.25] : [1, 1.5]} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : 'Хромированная пространственная скульптура'}>
+    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced}/><Studio low={props.low} monochrome={props.kind === 'cube'}/>
     {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={props.low}/> : <Signal paused={props.paused} reduced={props.reduced} low={props.low}/>}
   </Canvas>
 }
