@@ -38,7 +38,7 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       paint.putImageData(pixels, 0, 0)
       return texture
     }
-    const blueCloud = cloud([67, 91, 142], .4), violetCloud = cloud([103, 67, 115], 1.8)
+    const blueCloud = cloud([76, 78, 83], .4), violetCloud = cloud([87, 84, 89], 1.8)
     const draw = () => {
       ctx.clearRect(0, 0, width, height)
       if (!reduced && !paused) { drift.x += (pointer.x - drift.x) * .035; drift.y += (pointer.y - drift.y) * .035 }
@@ -62,17 +62,17 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
         const y = (s.y * height - parallax + drift.y * s.depth * 12 + height * 10) % height
         const centerShield = x > width * .15 && x < width * .59 ? .4 : 1
         const twinkle = reduced ? .8 : .72 + Math.sin(time * .25 + s.phase) * .18
-        ctx.fillStyle = `rgba(203,218,244,${(.16 + s.depth * .45) * twinkle * centerShield})`
+        ctx.fillStyle = `rgba(220,222,226,${(.16 + s.depth * .45) * twinkle * centerShield})`
         ctx.beginPath(); ctx.arc(x, y, s.size * (low ? .8 : 1), 0, Math.PI * 2); ctx.fill()
         if (!low && i % 31 === 0) {
-          ctx.strokeStyle = `rgba(190,213,245,${.09 * twinkle})`; ctx.lineWidth = .5
+          ctx.strokeStyle = `rgba(215,218,224,${.09 * twinkle})`; ctx.lineWidth = .5
           ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke()
         }
       }
       // Peripheral light paths reinforce depth while leaving the reading column dark.
       for (let i = 0; i < (low ? 2 : 4); i++) {
         const x = width * .94 + i * 16, bend = Math.sin(time * .04 + i + scroll) * 35
-        ctx.strokeStyle = 'rgba(129,166,225,.045)'; ctx.lineWidth = .6; ctx.beginPath(); ctx.moveTo(x + 60, -40)
+        ctx.strokeStyle = 'rgba(176,184,196,.045)'; ctx.lineWidth = .6; ctx.beginPath(); ctx.moveTo(x + 60, -40)
         ctx.bezierCurveTo(x - 130 + bend, height * .3, x + 110, height * .6, x - 130, height + 40); ctx.stroke()
       }
     }

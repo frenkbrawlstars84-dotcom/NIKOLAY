@@ -27,7 +27,7 @@ async function content(page, url) {
   assert(await page.getByRole('heading', { level: 1 }).isVisible())
   assert.equal(await page.getByRole('navigation', { includeHidden: true }).count(), 1)
   assert.equal(await page.locator('#projects').count(), 1)
-  assert.equal(await page.getByRole('link', { name: 'Связаться со мной', exact: true }).getAttribute('href'), 'https://t.me/yuniorqq')
+  for (const name of ['Связаться со мной', '@yuniorqq', 't.me/yuniorqq']) assert.equal(await page.getByRole('link', { name, exact: true }).getAttribute('href'), 'https://t.me/yuniorqq')
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
 }
 async function healthy(page, url) {
@@ -81,14 +81,19 @@ try {
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
     await healthy(page, url)
     for (let i = 0; i < 3; i++) { await page.reload(); await healthy(page) }
-    // Verify that the original cinematic transition still runs.
-    await page.evaluate(() => {
+    // Slow, fast and reversed native scrolling through TON 618.
+    const phase = async value => page.evaluate(v => {
       const rect = document.querySelector('.experience-track').getBoundingClientRect()
-      window.scrollTo(0, scrollY + rect.top + (rect.height - innerHeight) * .6)
-    })
-    await page.waitForFunction(() => document.querySelector('.hero-copy').inert)
-    await page.evaluate(() => window.scrollTo(0, 0))
+      window.scrollTo(0, scrollY + rect.top + (rect.height - innerHeight) * v)
+    }, value)
+    for (const value of [.32, .53, .68, .8, .92]) { await phase(value); await page.waitForTimeout(550) }
+    assert.equal(await page.locator('.scene-layer').getAttribute('data-scene-status'), 'ready')
+    assert.equal(await page.locator('.opening').evaluate(e => e.nextElementSibling.id), 'projects')
+    assert.equal(await page.locator('#about').count(), 1)
+    for (const value of [.1, .8, .2, .95, 1, 0]) { await phase(value); await page.waitForTimeout(30) }
     await page.waitForFunction(() => !document.querySelector('.hero-copy').inert)
+    await page.waitForTimeout(800)
+    assert.equal(await page.locator('.horizon-shade').evaluate(e => Number(getComputedStyle(e).opacity)), 0)
     await projectNavigation(page, url, 'Открыть сайт NEXORA DIGITAL')
     await page.setViewportSize({ width: 390, height: 844 })
     await projectNavigation(page, url, 'Смотреть сайт', true)
@@ -140,11 +145,69 @@ try {
     }
     await page.locator('.accent-cube[data-accent-status="fallback"]').waitFor()
     assert(await page.locator('.accent-cube .accent-fallback').isVisible())
-    assert.equal(await page.getByRole('link', { name: 'Связаться со мной', exact: true }).getAttribute('href'), 'https://t.me/yuniorqq')
+    for (const name of ['Связаться со мной', '@yuniorqq', 't.me/yuniorqq']) assert.equal(await page.getByRole('link', { name, exact: true }).getAttribute('href'), 'https://t.me/yuniorqq')
     assert.equal(await page.locator('#root h1').count(), 1)
     await page.getByRole('link', { name: 'Связаться со мной', exact: true }).click({ trial: true })
     await page.close()
     console.log(`PASS ${failure}: cube fallback, Telegram and the rest of the app survive`)
+  }
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+    await page.addInitScript(() => {
+      window.__cubeBuffers = { body: null, colors: null }
+      const proto = WebGL2RenderingContext.prototype
+      for (const method of ['bufferData', 'bufferSubData']) {
+        const original = proto[method]
+        proto[method] = function(...args) {
+          const data = args[method === 'bufferData' ? 1 : 2]
+          if (this.canvas.closest('.accent-cube') && data instanceof Float32Array) {
+            if (data.length === 416) window.__cubeBuffers.body = Array.from(data)
+            if (data.length === 162) window.__cubeBuffers.colors = Array.from(data)
+          }
+          return original.apply(this, args)
+        }
+      }
+    })
+    await healthy(page, preview)
+    await page.locator('.accent-cube').scrollIntoViewIfNeeded()
+    await page.locator('.accent-cube[data-accent-status="ready"]').waitFor()
+    await page.waitForFunction(() => window.__cubeBuffers.body && window.__cubeBuffers.colors)
+    const initial = await page.evaluate(() => window.__cubeBuffers.body)
+    let previous = initial
+    for (let turn = 0; turn < 4; turn++) {
+      await page.getByRole('button', { name: 'Повернуть грань', exact: true }).click()
+      await page.waitForTimeout(150)
+      const matrices = await page.evaluate(() => window.__cubeBuffers.body)
+      let changed = 0
+      const centers = []
+      for (let cell = 0; cell < 26; cell++) {
+        if (matrices.slice(cell * 16, cell * 16 + 16).some((v, i) => Math.abs(v - previous[cell * 16 + i]) > 1e-5)) changed++
+        const position = matrices.slice(cell * 16 + 12, cell * 16 + 15)
+        assert(position.every(v => Math.abs(v - Math.round(v)) < 1e-5))
+        centers.push(position.map(Math.round).join(','))
+      }
+      assert.equal(changed, 9, 'A face turn updates exactly nine rendered cubies')
+      assert.equal(new Set(centers).size, 26)
+      previous = matrices
+    }
+    assert(previous.every((value, i) => Math.abs(value - initial[i]) < 1e-5), 'Four rendered quarter turns restore the original cube')
+    const colors = await page.evaluate(() => window.__cubeBuffers.colors)
+    for (let i = 0; i < colors.length; i += 3) assert(Math.abs(colors[i] - colors[i + 1]) < 1e-5 && Math.abs(colors[i] - colors[i + 2]) < 1e-5, 'Sticker colors are monochrome')
+    await page.close()
+    console.log('PASS cube GPU matrices: 26 centers, 9 cubies/turn, four exact quarter turns restore the cube, monochrome stickers')
+  }
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    await page.addInitScript(() => {
+      const original = WebGL2RenderingContext.prototype.shaderSource
+      WebGL2RenderingContext.prototype.shaderSource = function(shader, source) { return original.call(this, shader, source.includes('float ribbons') ? 'INVALID_SHADER' : source) }
+    })
+    await healthy(page, preview)
+    await page.evaluate(() => { const r = document.querySelector('.experience-track').getBoundingClientRect(); window.scrollTo(0, scrollY + r.top + (r.height - innerHeight) * .66) })
+    await fallback(page)
+    assert.equal(await page.locator('.horizon-shade').evaluate(e => getComputedStyle(e).display), 'none')
+    await page.close()
+    console.log('PASS deferred TON shader failure: cinematic shade disabled, visible HTML and contacts survive')
   }
   console.log('All browser regressions passed.')
 } finally {

@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import SceneFallback from './SceneFallback'
 import CanvasHealth from './CanvasHealth'
+import BlackHole from './BlackHole'
 
 type IntroFrame = { x: number; y: number; width: number; height: number }
 type SceneProps = { progress: RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
@@ -17,7 +18,7 @@ const vertex = `
   varying float vDepth;
   void main() {
     float t = uTime * .16;
-    float unfurl = smoothstep(.08, .64, uProgress);
+    float unfurl = smoothstep(.1, .44, uProgress);
     vec3 p = position;
     p.xy *= 1. + .06 * sin(p.z * 1.7 + t);
     p.x += sin(p.y * 1.3 + t) * .08;
@@ -40,7 +41,7 @@ const fragment = `
   varying float vDepth;
   void main() {
     float fog = smoothstep(.15, 1.6, vDepth) * (1. - smoothstep(17., 35., vDepth));
-    float exitFade = 1. - smoothstep(.91, 1., uProgress);
+    float exitFade = 1. - smoothstep(.53, .76, uProgress);
     gl_FragColor = vec4(vec3(.76, .80, .85) * vLight, .62 * (.35 + .65 * vLight) * fog * exitFade);
   }
 `
@@ -54,7 +55,7 @@ const particleVertex = `
     p.xy += vec2(sin(p.z + uTime * .12), cos(p.z * .3 + uTime * .1)) * .06;
     vec4 mv = modelViewMatrix * vec4(p, 1.);
     float depth = -mv.z;
-    vAlpha = (.16 + .84 * smoothstep(.28, .55, uProgress)) * (1. - smoothstep(.88, 1., uProgress));
+    vAlpha = (.16 + .84 * smoothstep(.28, .55, uProgress)) * (1. - smoothstep(.84, .94, uProgress));
     vAlpha *= smoothstep(.1, 1., depth) * (1. - smoothstep(18., 32., depth));
     gl_PointSize = clamp(15. / max(depth, .5), 1., 4.) * uDpr;
     gl_Position = projectionMatrix * mv;
@@ -64,7 +65,7 @@ const particleFragment = `
   varying float vAlpha;
   void main() {
     float spot = 1. - smoothstep(.05, .5, length(gl_PointCoord - vec2(.5)));
-    gl_FragColor = vec4(.79, .84, .93, vAlpha * spot * .55);
+    gl_FragColor = vec4(.88, .89, .92, vAlpha * spot * .55);
   }
 `
 
@@ -120,7 +121,7 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
     const points: number[] = [], count = low ? 80 : 220
     for (let i = 0; i < count; i++) {
       const angle = i * 2.39996, radius = 1.2 + ((i * .618) % 1) * 1.7
-      points.push(Math.cos(angle) * radius, Math.sin(angle) * radius, -((i * .3819) % 1) * 38)
+      points.push(Math.cos(angle) * radius, Math.sin(angle) * radius, -((i * .3819) % 1) * 52)
     }
     const result = new THREE.BufferGeometry()
     result.setAttribute('position', new THREE.Float32BufferAttribute(points, 3))
@@ -142,7 +143,9 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
     smoothedProgress.current = reduced ? 0 : THREE.MathUtils.damp(smoothedProgress.current, progress.current, 10, dt)
     const p = smoothedProgress.current
     const center = THREE.MathUtils.smoothstep(p, .24, .52)
-    const depth = THREE.MathUtils.smoothstep(p, .38, .93)
+    const tunnel = THREE.MathUtils.smoothstep(p, .3, .46)
+    const approach = THREE.MathUtils.smoothstep(p, .46, .82)
+    const crossing = THREE.MathUtils.smoothstep(p, .82, .95)
     material.uniforms.uTime.value = clock.current
     material.uniforms.uProgress.value = p
     material.uniforms.uReveal.value = paused || reduced ? 1 : THREE.MathUtils.damp(material.uniforms.uReveal.value, 1, 3.2, dt)
@@ -162,9 +165,9 @@ function Sculpture({ progress, reduced, paused, low, frame }: Omit<SceneProps, '
         -.35 * (1 - center),
       )
     }
-    camera.position.z = 7.4 - depth * 30
+    camera.position.z = 7.4 - tunnel * 7 - approach * 22 - crossing * 4.8
   })
-  return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} /></group><points geometry={particleGeometry} material={particleMaterial} frustumCulled={false}/></>
+  return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} /></group><points geometry={particleGeometry} material={particleMaterial} frustumCulled={false}/><BlackHole progress={smoothedProgress} clock={clock} low={low}/></>
 }
 
 export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
@@ -206,7 +209,7 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
     }
   }, [anchor])
   return <div ref={host} className="scene-host">{supported ? <Canvas
-    aria-label="Процедурная спираль, переходящая при прокрутке в трёхмерный коридор"
+    aria-label="Спираль, пространственный туннель и проход через чёрную дыру TON 618"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.5]} frameloop="demand"
     gl={{ antialias: !low, alpha: true, powerPreference: 'low-power' }}
   ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView} low={low} frame={frame} /></Canvas> : <SceneFallback />}</div>

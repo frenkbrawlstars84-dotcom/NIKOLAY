@@ -21,7 +21,7 @@
 .accent-signal .accent-stage{height:245px}
 .about-body{align-items:start}
 .about-statement{position:relative;z-index:1}
-.contact{background:#0e1520db;border-top-color:#98b7e42b}
+.contact{background:#111214db;border-top-color:#98b7e42b}
 .contact-title{z-index:1}
 .contact-bottom{align-items:center;position:relative;z-index:2}
 .contact-bottom>p{max-width:300px;flex-shrink:0}
@@ -32,8 +32,8 @@
 .contact-cube-layout .contact-links{min-width:0;gap:23px}
 .contact-cube-layout .telegram-address{align-items:flex-start;flex-direction:column;gap:10px}
 .contact-cube-layout .telegram-username{font-size:33px}
-.contact-cube-layout .contact-cta{gap:18px;white-space:nowrap;background:#dbe5f1;border-color:#c6d4e8;box-shadow:0 5px 40px #7aadeb0b}
-.contact-cube-layout .contact-cta:hover{background:#f1f6ff;box-shadow:0 5px 40px #7aadeb20}
+.contact-cube-layout .contact-cta{gap:18px;white-space:nowrap;background:#e5e5e5;border-color:#cccccc;box-shadow:0 5px 40px #7aadeb0b}
+.contact-cube-layout .contact-cta:hover{background:#ffffff;box-shadow:0 5px 40px #7aadeb20}
 .contact-orbit{opacity:.1}
 .footer{position:relative;border-top:1px solid #8ba6d016}
 @media(max-width:1100px){
@@ -60,3 +60,16 @@
   .contact-bottom>p{max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.accent-object{animation:none!important;transition:none!important}}
+/* TON 618 stays inside the existing pinned passage and never covers the hero copy. */
+.ton-caption{position:absolute;left:0;right:0;bottom:15%;z-index:3;text-align:center;opacity:0;pointer-events:none}
+.ton-caption strong{display:block;font-size:11px;letter-spacing:5px;font-weight:400;color:#eeeeee}
+.ton-caption span{display:inline-block;margin-top:12px;padding:7px 10px;background:#0009;font-size:6px;letter-spacing:2.5px;color:#aaa}
+.horizon-shade{position:absolute;inset:0;background:#000;z-index:1;opacity:0;pointer-events:none}
+.work{perspective:1400px}
+.cube-turn-button{position:relative;display:flex;align-items:center;justify-content:center;gap:12px;min-height:32px;margin:10px auto 0;padding:7px 12px;font-size:8px;letter-spacing:.5px;border:1px solid #aaaaaa30;border-radius:3px;background:#151515;color:#c9c9c9;pointer-events:auto;touch-action:manipulation;transition:background .2s,border-color .2s}
+.cube-turn-button span{font-size:16px;line-height:1}
+.cube-turn-button:hover:not(:disabled){background:#252525;border-color:#ddd8}
+.cube-turn-button:disabled{opacity:.35;cursor:default}
+.accent-cube .accent-stage::before{background:radial-gradient(ellipse,#ffffff0c,transparent 68%)}
+@media(max-height:650px),(prefers-reduced-motion:reduce){.ton-caption,.horizon-shade{display:none}}
+.site-root:not(.visual-status-ready) .ton-caption,.site-root:not(.visual-status-ready) .horizon-shade{display:none}
