@@ -50,12 +50,31 @@ async function fallback(page, url) {
   await page.locator('#contact').scrollIntoViewIfNeeded()
   assert(await page.getByRole('link', { name: '@yuniorqq', exact: true }).isVisible())
 }
+async function projectNavigation(page, url, linkName, touch = false) {
+  const destination = 'https://lambent-pudding-e679ea.netlify.app/'
+  // Only stub the external response. This tests a REAL click/navigation, not
+  // remote Netlify availability (outbound access may be denied in CI).
+  const response = route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Navigation test</title><p>NEXORA navigation reached</p>' })
+  await page.context().route(destination, response)
+  try {
+    await healthy(page, url)
+    await page.locator('.gallery-index').getByRole('button', { name: /NEXORA DIGITAL/ }).click()
+    await page.waitForFunction(() => document.querySelector('.project-plane.is-active h3')?.textContent === 'NEXORA DIGITAL')
+    await page.waitForTimeout(1000)
+    const link = page.getByRole('link', { name: linkName, exact: true })
+    assert.equal(await link.getAttribute('href'), destination)
+    assert.equal(await link.getAttribute('target'), null)
+    await Promise.all([page.waitForURL(destination), touch ? link.tap() : link.click()])
+    assert.equal(page.url(), destination)
+    assert(await page.getByText('NEXORA navigation reached').isVisible())
+  } finally { await page.context().unroute(destination, response) }
+}
 let browser
 try {
   const dev = await serve(false, 5175), preview = await serve(true, 4175)
   browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, args: ['--enable-unsafe-swiftshader'] })
   for (const url of [dev, preview]) {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, hasTouch: true })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -69,8 +88,10 @@ try {
     await page.waitForFunction(() => document.querySelector('.hero-copy').inert)
     await page.evaluate(() => window.scrollTo(0, 0))
     await page.waitForFunction(() => !document.querySelector('.hero-copy').inert)
+    await projectNavigation(page, url, 'Открыть сайт NEXORA DIGITAL')
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.reload(); await healthy(page)
+    await projectNavigation(page, url, 'Смотреть сайт', true)
+    await healthy(page, url)
     await page.getByRole('button', { name: 'Открыть меню' }).click()
     await page.getByRole('navigation').getByRole('link', { name: 'Контакты' }).click()
     await page.getByRole('link', { name: 'Связаться со мной', exact: true }).click({ trial: true })

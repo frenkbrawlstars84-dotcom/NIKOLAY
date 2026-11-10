@@ -31,8 +31,7 @@ function ProjectPlane({ project, index, active, position }: { project: Project; 
       <div className="project-image"><motion.div className="project-parallax" style={{ x: imageX, y: imageY }}>
         {project.image ? <img src={project.image} alt={`Скриншот ${project.name}`} loading="lazy" /> : project.upcoming ? <div className="future-art"><Plus size={52} strokeWidth={.7}/><strong>{project.name === 'NEXORA DIGITAL' ? 'NEXORA' : 'YOUR NEXT IDEA'}</strong><span>ПРОЕКТ ЕЩЁ НЕ ОПУБЛИКОВАН</span></div> : project.name === 'AURA BEAUTY' ? <div className="aura-preview"><div className="aura-top">AURA <span>BEAUTY STUDIO</span></div><small>ПРОСТРАНСТВО ВАШЕЙ КРАСОТЫ</small><strong>Искусство<br/><em>быть собой.</em></strong><div className="aura-lines">{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ transform: `rotate(${i * 9}deg)` }}/>)}</div><span className="preview-label">КОНЦЕПТУАЛЬНОЕ ПРЕВЬЮ · НЕ СКРИНШОТ</span></div> : <div className="future-art published-art"><ArrowUpRight size={44} strokeWidth={.8}/><strong>{project.name === 'NEXORA DIGITAL' ? 'NEXORA' : project.name}</strong><span>ОБЛОЖКА ПРОЕКТА · НЕ СКРИНШОТ</span></div>}
       </motion.div></div>
-      <div className="project-info"><div><span className="micro">{project.category}</span><h3>{project.name}</h3><p>{project.description}</p><small>{project.technologies.length ? project.technologies.join(' / ') : project.upcoming ? 'Технологии определяются под задачу' : 'Стек проекта не подтверждён'}</small></div>{project.url ? <a className="round-link" href={project.url} target="_blank" rel="noopener noreferrer" aria-label={`Открыть сайт ${project.name}`}><ArrowUpRight/></a> : <span className="coming">Скоро</span>}</div>
-      {project.url && <a className="project-visit" href={project.url} target="_blank" rel="noopener noreferrer">{project.demo ? 'Смотреть демосайт' : 'Смотреть сайт'} <ArrowUpRight size={16}/></a>}
+      <div className="project-info"><div><span className="micro">{project.category}</span><h3>{project.name}</h3><p>{project.description}</p><small>{project.technologies.length ? project.technologies.join(' / ') : project.upcoming ? 'Технологии определяются под задачу' : 'Стек проекта не подтверждён'}</small></div>{!project.url && <span className="coming">Скоро</span>}</div>
     </motion.div>
   </motion.article>
 }
@@ -58,6 +57,7 @@ export default function ProjectGallery() {
     })
     return () => media.revert()
   }, [position, reduced])
+  const currentProject = projects[active]
   const select = (index: number) => {
     const scene = trigger.current
     if (scene && scene.end > scene.start) {
@@ -67,6 +67,6 @@ export default function ProjectGallery() {
   }
   return <div ref={root} className="gallery-runway"><div className="gallery-layout">
     <div className="gallery-index">{projects.map((item, i) => <button key={item.name} className={active === i ? 'selected' : ''} onClick={() => select(i)} aria-pressed={active === i}><span>0{i + 1}</span>{item.name}<ArrowUpRight size={16}/></button>)}<p>Листайте, чтобы пройти галерею.<br/>Или выберите проект напрямую.</p><div className="depth-ruler" aria-hidden="true"><span>NEAR</span><i/><span>FAR</span></div></div>
-    <div className="gallery-perspective"><div className="gallery-floor" aria-hidden="true"/><div className="project-deck">{projects.map((project, i) => <ProjectPlane key={project.name} project={project} index={i} active={active === i} position={reduced ? position : smooth}/>)}</div><div className="gallery-controls"><span role="status" aria-live="polite">0{active + 1} <span>/ 0{projects.length}</span></span><div><button aria-label="Предыдущий проект" onClick={() => select((active + projects.length - 1) % projects.length)}>←</button><button aria-label="Следующий проект" onClick={() => select((active + 1) % projects.length)}>→</button></div></div></div>
+    <div className="gallery-perspective"><div className="gallery-floor" aria-hidden="true"/><div className="project-deck">{projects.map((project, i) => <ProjectPlane key={project.name} project={project} index={i} active={active === i} position={reduced ? position : smooth}/>)}</div><div className="gallery-controls"><span role="status" aria-live="polite">0{active + 1} <span>/ 0{projects.length}</span></span>{currentProject.url && <div className="gallery-open-actions"><a className="gallery-project-visit" href={currentProject.url} rel="noopener noreferrer">{currentProject.demo ? 'Смотреть демосайт' : 'Смотреть сайт'}<ArrowUpRight size={16}/></a><a className="round-link gallery-round-link" href={currentProject.url} rel="noopener noreferrer" aria-label={`Открыть сайт ${currentProject.name}`}><ArrowUpRight size={19}/></a></div>}<div className="gallery-page-controls"><button aria-label="Предыдущий проект" onClick={() => select((active + projects.length - 1) % projects.length)}>←</button><button aria-label="Следующий проект" onClick={() => select((active + 1) % projects.length)}>→</button></div></div></div>
   </div></div>
 }

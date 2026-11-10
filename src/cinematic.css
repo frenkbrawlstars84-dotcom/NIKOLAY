@@ -40,8 +40,8 @@
 .project-parallax>img{width:100%;height:100%;object-fit:cover;object-position:top}
 .project-surface .project-info{flex:1;padding:17px 12px 6px;transform:translateZ(18px)}
 .project-surface .project-info h3{font-size:23px;margin-block:8px}
-.project-surface .project-visit{margin:6px 12px 10px;transform:translateZ(24px)}
-.project-surface .round-link{flex-shrink:0;transform:translateZ(15px)}
+.project-surface .project-visit{margin:6px 12px 10px}
+.project-surface .round-link{flex-shrink:0}
 .gallery-floor{position:absolute;left:-15%;right:-5%;bottom:-50px;height:270px;transform:rotateX(70deg) translateZ(-120px);background:repeating-linear-gradient(90deg,transparent,transparent 69px,#adbfdd15 70px),repeating-linear-gradient(0deg,transparent,transparent 49px,#adbfdd15 50px);mask-image:radial-gradient(ellipse,#0007,transparent 70%);pointer-events:none}
 .depth-ruler{display:flex;align-items:center;gap:14px;font-size:6px;letter-spacing:1.5px;color:#58677e;margin-top:40px}.depth-ruler i{display:block;width:90px;height:1px;background:repeating-linear-gradient(90deg,#7c8ba7 0,#7c8ba7 1px,transparent 1px,transparent 7px)}
 .gallery-index button{transition:color .3s,padding-left .3s}.gallery-index button.selected{padding-left:9px}
@@ -120,3 +120,12 @@
 .site-root:not(.visual-status-ready) .passage-copy,.site-root:not(.visual-status-ready) .passage-guides{display:none}
 .visual-status-fallback .hero-copy,.visual-status-fallback .hero-type,.visual-status-fallback .hero-bottom{opacity:1!important;clip-path:none!important;transform:none!important;visibility:visible!important}
 .visual-status-fallback .fluid-ink{transform:none!important;filter:none!important}
+
+/* Navigation is a flat sibling of the 3D deck, never a moving hit target. */
+.gallery-controls{align-items:center;gap:14px;transform-style:flat}
+.gallery-open-actions{flex:1;justify-content:center;align-items:center;gap:12px!important;transform:none}
+.gallery-project-visit{min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:22px;padding:11px 16px;border:1px solid #ffffff55;border-radius:3px;background:#14181f;font-size:11px;position:relative;pointer-events:auto;touch-action:manipulation;transition:background .2s,border-color .2s}
+.gallery-project-visit:hover{background:#242c38;border-color:#c4cede}
+.gallery-round-link{width:42px;height:42px;pointer-events:auto;touch-action:manipulation;transform:none}
+.gallery-page-controls{flex-shrink:0}
+@media(max-width:680px){.gallery-controls{flex-wrap:wrap}.gallery-open-actions{order:3;flex-basis:100%;justify-content:space-between}.gallery-project-visit{flex:1}.gallery-page-controls{margin-left:auto}}
