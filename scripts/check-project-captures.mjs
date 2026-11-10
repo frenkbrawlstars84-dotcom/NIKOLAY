@@ -6,7 +6,9 @@ for(const key of ['aura','nexora']){
   try{
     if(!entry?.image||!entry.source||!entry.capturedAt)throw new Error('Capture metadata missing')
     const bytes=await readFile(new URL(entry.image.replace('/projects/',''),folder))
-    if(bytes.readUInt32BE(0)!==0x89504e47)throw new Error('Not a real PNG capture')
+    const png=bytes.length>8&&bytes.readUInt32BE(0)===0x89504e47
+    const webp=bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP'
+    if(!png&&!webp)throw new Error('Not a PNG/WebP capture')
     console.log(`PASS ${key}: ${entry.image}, source ${entry.source}`)
   }catch{
     console.error(`MISSING ${key}: a real website screenshot is required`);missing=true

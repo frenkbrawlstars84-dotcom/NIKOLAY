@@ -50,3 +50,21 @@ test('reduced-motion manual requests snap to complete quarter turns',()=>{
  assert.equal(model.completedTurns,4);assert.equal(model.active,null)
  for(const c of model.cells){assert.deepEqual(c.position,c.home);assert.deepEqual(c.orientation,identity)}
 })
+test('automatic turns consume elapsed time consistently at different frame rates',()=>{
+ const oneStep=new RubikController(),manySteps=new RubikController()
+ oneStep.advance(25.2)
+ for(let i=0;i<2400;i++)manySteps.advance(25.2/2400)
+ assert.equal(oneStep.completedTurns,manySteps.completedTurns)
+ assert.deepEqual(oneStep.cells,manySteps.cells)
+ assert(Math.abs(oneStep.idle-manySteps.idle)<1e-8)
+ valid(oneStep.cells)
+})
+test('idle-to-turn boundary uses only the remaining fraction of a frame',()=>{
+ const model=new RubikController()
+ model.advance(model.pause-.01);model.advance(.02)
+ assert(model.active);assert(Math.abs(model.active.elapsed-.01)<1e-8)
+ model.advance(model.duration-.01)
+ assert.equal(model.active,null);assert.equal(model.completedTurns,1)
+ const before=JSON.stringify(model.cells);model.advance(.2)
+ assert.equal(JSON.stringify(model.cells),before,'The completed layer stays still during the next pause')
+})

@@ -31,10 +31,10 @@ function App(){
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
    <div className="hero-composition">
      <div className="hero-copy">
-       <motion.div className="hero-type" initial={{opacity:0,y:reduced?0:24}} animate={{opacity:1,y:0}} transition={{duration:.8,delay:.15}}>
+       <div className="hero-type">
          <span className="hero-greeting">Привет, я Николай</span>
          <h1><FluidText>За пределами</FluidText><br/><em><FluidText>обычного.</FluidText></em></h1>
-       </motion.div>
+       </div>
        <motion.div className="hero-bottom" initial={{opacity:0,y:reduced?0:15}} animate={{opacity:1,y:0}} transition={{duration:.7,delay:.35}}>
          <p>Создаю цифровые впечатления<br/>для вашего бизнеса<span>Веб-сайты, в которых встречаются<br/>эстетика, технологии и смысл.</span></p>
          <div className="hero-actions"><a className="button light" href="#projects">Мои проекты <ArrowUpRight size={17}/></a><a className="text-link" href="#contact">Обсудить проект <ArrowUpRight size={16}/></a></div>

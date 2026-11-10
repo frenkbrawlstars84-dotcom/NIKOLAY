@@ -37,7 +37,7 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     let disposed=false,loaded:THREE.Texture|undefined
     const texture=new THREE.TextureLoader().load(project.image,value=>{
       if(disposed){value.dispose();return}
-      loaded=value;value.colorSpace=THREE.SRGBColorSpace;value.anisotropy=Math.min(4,gl.capabilities.getMaxAnisotropy());value.needsUpdate=true
+      loaded=value;value.colorSpace=THREE.SRGBColorSpace;value.anisotropy=Math.min(8,gl.capabilities.getMaxAnisotropy());value.needsUpdate=true
       resources.face.map=value;resources.face.needsUpdate=true;invalidate()
     },undefined,()=>{ /* Retain the explicitly labeled cover; never blank the app. */ })
     return()=>{disposed=true;if(loaded)loaded.dispose();else texture.dispose()}
@@ -49,15 +49,16 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     const visible=props.reduced?Math.round(props.position.get())===index:distance<2.05
     group.current.visible=visible
     if(!visible)return
-    const attention=Math.max(0,1-distance),pointer=props.pointer.current
+    const attention=Math.exp(-distance*distance*3.2),pointer=props.pointer.current
     const blend=props.reduced?1:1-Math.exp(-dt*9)
-    group.current.position.x=THREE.MathUtils.lerp(group.current.position.x,props.reduced?0:offset*1.65,blend)
+    group.current.position.x=THREE.MathUtils.lerp(group.current.position.x,props.reduced?0:offset*2.05,blend)
     group.current.position.y=THREE.MathUtils.lerp(group.current.position.y,props.reduced?0:distance*.12,blend)
-    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.5,blend)
+    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.28,blend)
+    group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*.03),blend))
     group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.18*attention,blend)
     group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.14*attention,blend)
-    const opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.42,.05,1)
-    resources.face.opacity=opacity;resources.body.opacity=opacity
+    resources.face.opacity=props.reduced?1:Math.max(.5,1-distance*.18)
+    resources.body.opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.35,.15,1)
   })
   return <group ref={group} position={[index*1.65,index*.12,-index*2.5]}>
     <mesh geometry={resources.frame} material={resources.body}/>
@@ -67,12 +68,20 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
 }
 function ScreenWorld(props: ScreenSceneProps) {
   const { camera,size,invalidate }=useThree()
+  const distance=useRef(7)
   useEffect(()=>{
     const tangent=Math.tan(40*Math.PI/360),aspect=size.width/size.height
-    camera.position.set(0,.05,Math.max(3.76/(2*tangent*.88),5.6/(2*tangent*aspect*.86)))
+    distance.current=Math.max(3.76*1.04/(2*tangent*.87),5.6*1.04/(2*tangent*aspect*.84))+.28
+    camera.position.set(0,.05,distance.current)
     camera.lookAt(0,0,-.2);camera.updateProjectionMatrix();invalidate()
   },[camera,size.width,size.height,invalidate])
   useEffect(()=>props.position.on('change',()=>{if(props.present)invalidate()}),[props.position,props.present,invalidate])
+  useFrame((_,delta)=>{
+    const p=props.position.get(),dt=Math.min(delta,.05)
+    camera.position.x=props.reduced?0:THREE.MathUtils.damp(camera.position.x,Math.sin(p*Math.PI*.65)*.3,6,dt)
+    camera.position.y=props.reduced?.05:THREE.MathUtils.damp(camera.position.y,.05+Math.sin(p*Math.PI)*.08,6,dt)
+    camera.lookAt(0,0,-.2)
+  })
   return <><StudioLighting low={props.low} monochrome={true}/>{projects.map((project,index)=><ScreenPanel key={project.name} project={project} index={index} {...props}/>)}</>
 }
 export default function ProjectScreenScene(props: ScreenSceneProps) {

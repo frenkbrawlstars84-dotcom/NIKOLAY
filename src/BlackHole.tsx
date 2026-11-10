@@ -15,38 +15,48 @@ const rayFragment = `
   float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){
     float value=noise(p)*.53+noise(p*2.03+4.7)*.27+noise(p*4.07+9.3)*.13;
-    #ifndef LOW_QUALITY
-      value+=noise(p*8.11+2.6)*.07;
-    #endif
+    value+=noise(p*8.11+2.6)*.07;
     return value;
   }
-  vec3 sky(vec3 d){
-    vec2 uv=vec2(atan(d.x,-d.z),asin(clamp(d.y,-1.,1.)))*155.;
-    vec2 id=floor(uv), f=fract(uv)-.5;
+  float starLayer(vec2 angular,float scale,float salt){
+    vec2 uv=angular*scale;
+    vec2 id=floor(uv)+salt, f=fract(uv)-.5;
     float seed=hash(id), star=0.;
-    if(seed>.984){
-      float radius=.035+hash(id+7.)*.05, footprint=65./uResolution.y;
+    if(seed>.982){
+      f-=(vec2(hash(id+3.),hash(id+5.))-.5)*.65;
+      float radius=.028+hash(id+7.)*.045, footprint=scale*.42/uResolution.y;
       float spread=radius*radius+footprint*footprint;
       star=exp(-dot(f,f)/spread)*(radius*radius/spread)*(.25+.65*hash(id+2.));
     }
-    return vec3(.0004,.0005,.0007)+vec3(star);
+    return star;
+  }
+  vec3 sky(vec3 d){
+    vec2 angular=vec2(atan(d.x,-d.z),asin(clamp(d.y,-1.,1.)));
+    vec2 parallax=uEye.xy*.0008+vec2(uEye.z-31.4)*vec2(.00002,.00005);
+    float farStars=starLayer(angular+parallax*.3,120.,0.);
+    float deepStars=starLayer(angular+parallax,255.,37.);
+    return vec3(.00025,.0003,.0004)+vec3(farStars*.8+deepStars*.4);
   }
   float gas(vec3 p,vec3 direction,vec3 normal){
     float r=length(p);
+    if(r<1.43||r>7.)return 0.;
     float edge=smoothstep(1.43,1.85,r)*(1.-smoothstep(5.5,7.,r));
-    float spin=uTime*.16/pow(max(r,1.4),1.15);
-    mat2 rotation=mat2(cos(spin),-sin(spin),sin(spin),cos(spin));
     vec2 plane=vec2(p.x,dot(p,normalize(cross(normal,vec3(1,0,0)))));
-    vec2 flow=rotation*plane;
-    float clouds=fbm(flow*2.8+fbm(flow*.7)*1.3);
-    // Fine, sheared gas filaments: detail is evaluated per rendered pixel.
-    vec2 streak=vec2(flow.x*11.+flow.y*2.,flow.y*2.2+flow.x*.45);
-    float fine=fbm(streak+clouds*2.);
-    float density=.1+pow(clouds,2.3)*1.65+pow(fine,3.)*.65;
-    float radial=exp(-pow((r-2.7)*.31,2.));
+    // Rotate the unit vector directly: avoid atan -> sin/cos round trips.
+    float spin=uTime*.12/(r*sqrt(r))+r*.2;
+    float cs=cos(spin),sn=sin(spin);
+    vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
+    float clouds=fbm(orbit*r*2.6);
+    // Uneven orbital filaments retain texture at close range without cloudy,
+    // screen-space blur. Exposure is bounded before adding the small glow.
+    vec2 flow=orbit*r;
+    float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
+    float detail=noise(orbit*r*27.);
+    float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+pow(detail,6.)*.07;
+    float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
-    float doppler=.85+.5*dot(tangent,-direction);
-    float thickness=clamp(.2/max(abs(dot(direction,normal)),.1),.25,1.7);
+    float doppler=.82+.24*dot(tangent,-direction);
+    float thickness=clamp(.14/max(abs(dot(direction,normal)),.16),.25,.88);
     return edge*density*radial*doppler*thickness;
   }
   void main(){
@@ -68,7 +78,7 @@ const rayFragment = `
     vec3 normal=normalize(vec3(0.,1.,.22));
     vec3 backImage=vec3(warped.x,warped.y,-warped.y/.22);
     float lensed=0.;
-    if(length(backImage)<7.1)lensed=gas(backImage,direction,normal)*outside*.85;
+    if(length(backImage)<7.1)lensed=gas(backImage,direction,normal)*outside;
     float direct=0.,denominator=dot(direction,normal);
     if(abs(denominator)>.0001){
       float distance=-dot(eye,normal)/denominator;
@@ -77,11 +87,11 @@ const rayFragment = `
         if(length(hit)<7.1)direct=gas(hit,direction,normal)*mix(outside,1.,smoothstep(-.08,.08,hit.z));
       }
     }
-    float photon=exp(-abs(impact-critical-.018)/max(.018,aa))*.075*outside;
-    float light=direct+lensed+photon;
+    float photon=exp(-abs(impact-critical-.018)/max(.018,aa))*.035*outside;
+    float light=direct*.82+lensed*.68+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 emission=vec3(1.-exp(-light*2.1));
+    vec3 emission=vec3(.92*(1.-exp(-light*2.05)));
     gl_FragColor=vec4(background+emission,1);
   }
 
@@ -91,15 +101,15 @@ const bloomFragment = `
   uniform vec2 uTexel;
   uniform float uOpacity;
   varying vec2 vUv;
-  vec3 bright(vec2 uv){return max(texture2D(uScene,uv).rgb-.48,vec3(0));}
+  vec3 bright(vec2 uv){return max(texture2D(uScene,uv).rgb-.62,vec3(0));}
   void main(){
     vec3 color=texture2D(uScene,vUv).rgb;
     vec3 glow=bright(vUv+uTexel*vec2(3.,0.))+bright(vUv-uTexel*vec2(3.,0.))+bright(vUv+uTexel*vec2(0.,3.))+bright(vUv-uTexel*vec2(0.,3.));
     #ifndef LOW_QUALITY
       glow+=bright(vUv+uTexel*vec2(10.,6.))+bright(vUv-uTexel*vec2(10.,6.))+bright(vUv+uTexel*vec2(-6.,10.))+bright(vUv-uTexel*vec2(-6.,10.));
-      glow*=.04;
+      glow*=.018;
     #else
-      glow*=.06;
+      glow*=.024;
     #endif
     gl_FragColor=vec4(color+glow,uOpacity);
   }
@@ -135,7 +145,7 @@ export default function BlackHole({ progress, clock, low, onUnavailable }: { pro
     if(!active)return
     resources.ray.uniforms.uEye.value.copy(camera.position);resources.ray.uniforms.uEye.value.z+=24
     resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
-    resources.composite.uniforms.uOpacity.value=THREE.MathUtils.smoothstep(p,.27,.38)*(1-THREE.MathUtils.smoothstep(p,.975,1))
+    resources.composite.uniforms.uOpacity.value=THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
     const previous=gl.getRenderTarget()
     try{
       gl.setRenderTarget(resources.target)

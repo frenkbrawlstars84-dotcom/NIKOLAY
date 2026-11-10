@@ -11,7 +11,7 @@
 .accent-glass .accent-stage{height:370px}
 .accent-glass figcaption{color:#9a9a9a;letter-spacing:2px}
 .project-deck{height:auto;transform-style:flat}
-.project-screens{height:clamp(280px,33vw,470px);position:relative;width:100%;overflow:hidden;isolation:isolate;touch-action:pan-y;background:radial-gradient(ellipse at center,#25262a88,transparent 70%)}
+.project-screens{height:clamp(260px,min(36vw,calc(100svh - 390px)),520px);position:relative;width:100%;overflow:hidden;isolation:isolate;touch-action:pan-y;background:radial-gradient(ellipse at center,#25262a88,transparent 70%)}
 .project-screens canvas{touch-action:pan-y!important}
 .project-meta-deck{position:relative;min-height:170px}
 .project-meta-deck .project-plane{transform:none;will-change:opacity;transform-style:flat;pointer-events:none}

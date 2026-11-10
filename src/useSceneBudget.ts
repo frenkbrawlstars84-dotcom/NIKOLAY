@@ -19,6 +19,9 @@ function choose() {
 }
 function schedule() { if (!frame) frame = requestAnimationFrame(choose) }
 const subscribe = (notify: () => void) => { subscribers.add(notify); return () => subscribers.delete(notify) }
+export function useSceneBusy() {
+  return useSyncExternalStore(subscribe, () => owner !== null, () => false)
+}
 export default function useSceneBudget(host: RefObject<HTMLElement | null>, enabled = true) {
   const id = useId()
   const current = useSyncExternalStore(subscribe, () => owner, () => null)

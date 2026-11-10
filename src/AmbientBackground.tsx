@@ -1,8 +1,12 @@
 import { useEffect, useRef } from 'react'
+import { useSceneBusy } from './useSceneBudget'
 
 // A single 2D composited sky: generated cloud textures, three star depths, no downloads.
 export default function AmbientBackground({ reduced, paused }: { reduced: boolean; paused: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null)
+  const busy=useSceneBusy(),focus=useRef(busy),wake=useRef<(()=>void)|null>(null)
+  focus.current=busy
+  useEffect(()=>{wake.current?.()},[busy])
   useEffect(() => {
     const element = canvas.current
     const ctx = element?.getContext('2d')
@@ -84,19 +88,20 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw()
     }
     const tick = (now: number) => {
-      if (document.hidden) { frame = 0; return }
+      if (document.hidden || focus.current) { frame = 0; return }
       if (now - last >= (low ? 83 : 40)) { time += Math.min((now - last) / 1000, .15); last = now; draw() }
       frame = requestAnimationFrame(tick)
     }
     const visibility = () => {
       cancelAnimationFrame(frame)
-      if (!document.hidden && !reduced && !paused) { last = performance.now(); frame = requestAnimationFrame(tick) }
+      if (!document.hidden && !reduced && !paused && !focus.current) { last = performance.now(); frame = requestAnimationFrame(tick) }
     }
     const move = (e: PointerEvent) => { if (!reduced && !paused && e.pointerType !== 'touch') { pointer.x = e.clientX / width - .5; pointer.y = e.clientY / height - .5 } }
+    wake.current=visibility
     resize(); visibility()
     window.addEventListener('resize', resize, { passive: true }); window.addEventListener('pointermove', move, { passive: true })
     document.addEventListener('visibilitychange', visibility)
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
+    return () => {wake.current=null;cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
   }, [reduced, paused])
   return <canvas className="ambient-background" ref={canvas} aria-hidden="true" />
 }

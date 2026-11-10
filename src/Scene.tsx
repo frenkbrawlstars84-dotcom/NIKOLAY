@@ -18,19 +18,25 @@ const vertex = `
   attribute float aPath;
   varying float vLight;
   varying float vDepth;
+  varying vec3 vWorldPosition;
   void main() {
     float t = uTime * .16;
-    float unfurl = smoothstep(.06, .26, uProgress);
+    float unfurl = smoothstep(.10, .48, uProgress);
     vec3 p = position;
     p.xy *= 1. + .06 * sin(p.z * 1.7 + t);
     p.x += sin(p.y * 1.3 + t) * .08;
-    // The hero filaments disperse before the flight; no full-screen ring tunnel.
-    p.z -= aPath * unfurl * 12.;
-    p.xy *= 1. + unfurl * .22;
-    p.x += sin(aStrand * 18. + aPath * 4.) * unfurl * .4;
-    p.y += cos(aStrand * 11. + aPath * 5.) * unfurl * .3;
+    // The same vertices become longitudinal filaments, rather than circular
+    // rings. Camera travel creates optic flow through this continuous corridor.
+    float angle = aStrand * 6.283185 + aPath * 1.25 + sin(aPath * 5. + aStrand * 12.) * .12;
+    float radius = 2.7 + sin(aStrand * 18.85) * .32 + sin(aPath * 8. + aStrand * 6.28) * .16;
+    vec3 corridor = vec3(cos(angle) * radius, sin(angle) * radius, 3. - aPath * 35.);
+    float lens = exp(-abs(corridor.z + 24.) * .2) * smoothstep(.4, .75, uProgress);
+    corridor.xy *= 1. + lens * .27;
+    corridor.x += sin(angle + corridor.z * .12) * lens * .22;
+    p = mix(p, corridor, unfurl);
     vLight = .3 + .7 * pow(.5 + .5 * sin(aStrand * 28. + aPath * 14. + t), 2.);
     vec4 viewPosition = modelViewMatrix * vec4(p * uReveal, 1.);
+    vWorldPosition=(modelMatrix*vec4(p*uReveal,1.)).xyz;
     vDepth = -viewPosition.z;
     gl_Position = projectionMatrix * viewPosition;
   }
@@ -39,39 +45,67 @@ const fragment = `
   uniform float uProgress;
   varying float vLight;
   varying float vDepth;
+  varying vec3 vWorldPosition;
   void main() {
     float fog = smoothstep(.15, 1.6, vDepth) * (1. - smoothstep(17., 35., vDepth));
-    float exitFade = 1. - smoothstep(.12, .28, uProgress);
-    gl_FragColor = vec4(vec3(.76, .80, .85) * vLight, .62 * (.35 + .65 * vLight) * fog * exitFade);
+    float exitFade = 1. - smoothstep(.48, .62, uProgress);
+    float weight = mix(.62, .17, smoothstep(.2, .46, uProgress));
+    float hidden=0.;
+    if(uProgress>.33&&vWorldPosition.z< -21.8){
+      vec3 eye=cameraPosition-vec3(0,0,-24.);
+      vec3 sight=vWorldPosition-cameraPosition;float distance=length(sight);sight/=max(distance,.001);
+      float impact=length(cross(eye,sight));
+      float entry=-dot(eye,sight)-sqrt(max(4.2025-impact*impact,0.));
+      hidden=step(0.,entry)*step(entry,distance)*(1.-smoothstep(2.,2.1,impact))*smoothstep(.33,.52,uProgress);
+    }
+    gl_FragColor = vec4(vec3(.81, .83, .87) * vLight, weight * (.35 + .65 * vLight) * fog * exitFade*(1.-hidden));
   }
 `
 const particleVertex = `
   uniform float uProgress;
   uniform float uTime;
-  uniform float uDpr;
+  attribute float aTip;
+  attribute float aSeed;
   varying float vAlpha;
+  varying float vTip;
+  varying vec3 vWorldPosition;
   void main() {
     vec3 p = position;
-    p.xy += vec2(sin(p.z + uTime * .12), cos(p.z * .3 + uTime * .1)) * .06;
+    float flight = smoothstep(.16, .55, uProgress);
+    p.xy += vec2(sin(p.z + uTime * .07), cos(p.z * .3 + uTime * .06)) * .025;
+    p.z += aTip * (.015 + flight * (.2 + aSeed * .45));
+    float lens = exp(-abs(p.z + 24.) * .21) * smoothstep(.45, .8, uProgress);
+    p.xy *= 1. + lens * .2;
     vec4 mv = modelViewMatrix * vec4(p, 1.);
     float depth = -mv.z;
-    vAlpha = (.16 + .84 * smoothstep(.28, .55, uProgress)) * (1. - smoothstep(.43, .68, uProgress));
-    vAlpha *= smoothstep(.1, 1., depth) * (1. - smoothstep(18., 32., depth));
-    gl_PointSize = clamp(15. / max(depth, .5), 1., 4.) * uDpr;
+    vAlpha = (.1 + .9 * flight) * (1. - smoothstep(.68, .86, uProgress));
+    vAlpha *= smoothstep(.2, 1.2, depth) * (1. - smoothstep(35., 65., depth));
+    vTip = aTip;
+    vWorldPosition=(modelMatrix*vec4(p,1.)).xyz;
     gl_Position = projectionMatrix * mv;
   }
 `
 const particleFragment = `
+  uniform float uProgress;
   varying float vAlpha;
+  varying float vTip;
+  varying vec3 vWorldPosition;
   void main() {
-    float spot = 1. - smoothstep(.05, .5, length(gl_PointCoord - vec2(.5)));
-    gl_FragColor = vec4(.88, .89, .92, vAlpha * spot * .24);
+    float hidden=0.;
+    if(uProgress>.33&&vWorldPosition.z< -21.8){
+      vec3 eye=cameraPosition-vec3(0,0,-24.);
+      vec3 sight=vWorldPosition-cameraPosition;float distance=length(sight);sight/=max(distance,.001);
+      float impact=length(cross(eye,sight));
+      float entry=-dot(eye,sight)-sqrt(max(4.2025-impact*impact,0.));
+      hidden=step(0.,entry)*step(entry,distance)*(1.-smoothstep(2.,2.1,impact))*smoothstep(.33,.52,uProgress);
+    }
+    gl_FragColor = vec4(.88, .89, .92, vAlpha * (.2 + .8 * vTip) * .18*(1.-hidden));
   }
 `
 
 function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omit<SceneProps, 'anchor' | 'onReady'> & { low: boolean; frame: RefObject<IntroFrame> }) {
   const object = useRef<THREE.Group>(null)
-  const { invalidate, camera, size, gl } = useThree()
+  const { invalidate, camera, size } = useThree()
   const pointer = useRef({ x: 0, y: 0 })
   const clock = useRef(0)
   const smoothedProgress = useRef(0)
@@ -89,7 +123,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
 
   const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: vertex, fragmentShader: fragment, transparent: true,
-    depthWrite: false, blending: THREE.AdditiveBlending,
+    depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
     uniforms: { uTime: { value: 0 }, uProgress: { value: 0 }, uReveal: { value: reduced ? 1 : 0 } },
   }), [reduced])
   const geometry = useMemo(() => {
@@ -110,19 +144,24 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     return result
   }, [low])
   const particleGeometry = useMemo(() => {
-    const points: number[] = [], count = low ? 48 : 120
+    const points: number[] = [], tips: number[] = [], seeds: number[] = [], count = low ? 150 : 380
     for (let i = 0; i < count; i++) {
-      const angle = i * 2.39996, radius = 1.2 + ((i * .618) % 1) * 1.7
-      points.push(Math.cos(angle) * radius, Math.sin(angle) * radius, -((i * .3819) % 1) * 52)
+      const angle = i * 2.39996, radius = 2.3 + ((i * .618) % 1) * 7
+      for (const tip of [0,1]) {
+        points.push(Math.cos(angle) * radius, Math.sin(angle) * radius, 3 - ((i * .3819) % 1) * 60)
+        tips.push(tip); seeds.push((i*.754877)%1)
+      }
     }
     const result = new THREE.BufferGeometry()
     result.setAttribute('position', new THREE.Float32BufferAttribute(points, 3))
+    result.setAttribute('aTip', new THREE.Float32BufferAttribute(tips, 1))
+    result.setAttribute('aSeed', new THREE.Float32BufferAttribute(seeds, 1))
     return result
   }, [low])
   const particleMaterial = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: particleVertex, fragmentShader: particleFragment, transparent: true,
-    depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uProgress: { value: 0 }, uDpr: { value: 1 } },
+    depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uTime: { value: 0 }, uProgress: { value: 0 } },
   }), [])
   useEffect(() => () => geometry.dispose(), [geometry])
   useEffect(() => () => material.dispose(), [material])
@@ -134,20 +173,19 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     if (!paused && !reduced) clock.current += dt
     smoothedProgress.current = reduced ? 0 : THREE.MathUtils.damp(smoothedProgress.current, progress.current, 10, dt)
     const p = smoothedProgress.current
-    const center = THREE.MathUtils.smoothstep(p, .16, .28)
+    const center = THREE.MathUtils.smoothstep(p, .16, .4)
     const travel = journeyProgress(p)
     material.uniforms.uTime.value = clock.current
     material.uniforms.uProgress.value = p
     material.uniforms.uReveal.value = paused || reduced ? 1 : THREE.MathUtils.damp(material.uniforms.uReveal.value, 1, 3.2, dt)
     particleMaterial.uniforms.uProgress.value = p
     particleMaterial.uniforms.uTime.value = clock.current
-    particleMaterial.uniforms.uDpr.value = gl.getPixelRatio()
     // The initial scale/position is measured from the empty, protected hero viewport.
     const worldHeight = 2 * 7.4 * Math.tan(42 * Math.PI / 360)
     const worldWidth = worldHeight * size.width / size.height
     const introScale = Math.min(frame.current.width * worldWidth, frame.current.height * worldHeight) / 4.7
     if (object.current) {
-      object.current.visible = p < .3
+      object.current.visible = p < .62
       object.current.position.set(frame.current.x * worldWidth * (1 - center), frame.current.y * worldHeight * (1 - center), 0)
       object.current.scale.setScalar(THREE.MathUtils.lerp(introScale, 1, center))
       object.current.rotation.set(
@@ -160,7 +198,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     camera.position.x = low ? 0 : Math.sin(travel * Math.PI) * .08
     camera.position.y = Math.sin(travel * Math.PI) * .04
   })
-  return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} /></group><points geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={20}/><BlackHole progress={smoothedProgress} clock={clock} low={low} onUnavailable={onUnavailable}/></>
+  return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} renderOrder={20}/></group><lineSegments geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={21}/><BlackHole progress={smoothedProgress} clock={clock} low={low} onUnavailable={onUnavailable}/></>
 }
 
 export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {

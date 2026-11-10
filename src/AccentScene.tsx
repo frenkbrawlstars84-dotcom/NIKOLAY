@@ -31,14 +31,18 @@ function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low
   const controller = useMemo(() => new RubikController(), [])
   const rig = useMemo(() => createRubikRig(controller.cells, low), [controller, low])
   const smoothPointer = useRef({ x: 0, y: 0 })
+  const freshFrame = useRef(true)
+  useLayoutEffect(()=>{freshFrame.current=true},[paused,reduced])
   useLayoutEffect(() => {
     if (reduced) controller.finishPending()
     rig.sync(controller.active?.move ?? null)
+    rig.rotate(controller.angle)
   }, [reduced, controller, rig])
   useEffect(() => () => rig.dispose(), [rig])
   useFrame((_, delta) => {
     if (paused || reduced) return
-    const dt = Math.min(delta, .05)
+    const dt = freshFrame.current ? 0 : Math.min(delta, .1)
+    freshFrame.current=false
     clock.current += dt
     controller.advance(dt)
     const move = controller.active?.move ?? null

@@ -38,6 +38,7 @@ export class RubikController {
   idle = 0
   sequenceIndex = 0
   readonly duration = 1.8
+  readonly pause = 6.5
   request(move: Move = { axis: 'y', layer: 1, direction: 1 }) {
     if (this.queue.length < 8) this.queue.push(move)
   }
@@ -47,18 +48,24 @@ export class RubikController {
     this.queue.length = 0; this.idle = 0
   }
   advance(delta: number, automatic = true) {
-    if (!this.active) {
-      if (this.queue.length) this.active = { move: this.queue.shift()!, elapsed: 0 }
-      else if (automatic) {
-        this.idle += delta
-        if (this.idle >= 6.5) { this.active = { move: sequence[this.sequenceIndex++ % sequence.length], elapsed: 0 }; this.idle = 0 }
+    if (!Number.isFinite(delta) || delta <= 0) return
+    let remaining = Math.min(delta, 60)
+    // Consume only the time belonging to each phase. Carry the remainder
+    // across boundaries so irregular frame intervals cannot shift or jump turns.
+    for (let step=0; step<32 && remaining>1e-10; step++) {
+      if (!this.active) {
+        if (this.queue.length) this.active = { move: this.queue.shift()!, elapsed: 0 }
+        else if (automatic) {
+          const consumed=Math.min(remaining,this.pause-this.idle)
+          this.idle+=consumed; remaining-=consumed
+          if(this.idle<this.pause-1e-10)return
+          this.active={move:sequence[this.sequenceIndex++ % sequence.length],elapsed:0};this.idle=0
+        } else return
       }
-    }
-    if (!this.active) return
-    this.active.elapsed = Math.min(this.duration, this.active.elapsed + delta)
-    if (this.active.elapsed >= this.duration) {
-      // Commit once to an integer lattice. No accumulating float-position drift.
-      commitTurn(this.cells, this.active.move); this.completedTurns++; this.active = null; this.idle = 0
+      const consumed=Math.min(remaining,this.duration-this.active.elapsed)
+      this.active.elapsed+=consumed;remaining-=consumed
+      if(this.active.elapsed<this.duration-1e-10)return
+      commitTurn(this.cells,this.active.move);this.completedTurns++;this.active=null;this.idle=0
     }
   }
   get angle() {
