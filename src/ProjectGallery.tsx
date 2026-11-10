@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react'
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
+import useReducedMotion from './useReducedMotion'
 import type { MotionValue } from 'motion/react'
 import { ArrowUpRight, Plus } from 'lucide-react'
 import gsap from 'gsap'

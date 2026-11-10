@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { motion, MotionConfig, useReducedMotion } from 'motion/react'
+import { motion, MotionConfig } from 'motion/react'
+import useReducedMotion from './useReducedMotion'
 import { ArrowUpRight, ArrowDown, Menu, X, Pause, Play, Plus, Send, MousePointer2, MoveUpRight, Check } from 'lucide-react'
 import './style.css'
 import './cinematic.css'

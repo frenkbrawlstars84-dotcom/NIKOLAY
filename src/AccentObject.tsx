@@ -9,7 +9,7 @@ function AccentFallback({ kind }: { kind: AccentKind }) {
     {kind === 'cube' ? [0, 1, 2].flatMap(face => Array.from({ length: 9 }, (_, i) => {
       const a = i % 3 - 1.5 + .05, b = Math.floor(i / 3) - 1.5 + .05, d = .9
       const points = face === 0 ? [[a, 1.5, b], [a + d, 1.5, b], [a + d, 1.5, b + d], [a, 1.5, b + d]] : face === 1 ? [[1.5, a, b], [1.5, a + d, b], [1.5, a + d, b + d], [1.5, a, b + d]] : [[a, b, 1.5], [a + d, b, 1.5], [a + d, b + d, 1.5], [a, b + d, 1.5]]
-      return <polygon key={`${face}-${i}`} points={points.map(p => project(p[0], p[1], p[2])).join(' ')} fill={['#ededed', '#aaaaaa', '#171717'][face]} stroke="#888888" strokeWidth="1.5" strokeLinejoin="round"/>
+      return <polygon key={`${face}-${i}`} points={points.map(p => project(p[0], p[1], p[2])).join(' ')} fill={['#fafafa', '#e5e5e5', '#f2f2f2'][face]} stroke="#111111" strokeWidth="1.5" strokeLinejoin="round"/>
     })) : Array.from({ length: 16 }, (_, i) => <ellipse key={i} cx="100" cy="100" rx={56} ry={21 + i * .5} stroke="#acbdd4" strokeOpacity=".6" strokeWidth=".7" transform={`rotate(${i * 12} 100 100)`}/>)}
   </svg></div>
 }
@@ -24,7 +24,6 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   const [seen, setSeen] = useState(false), [inView, setInView] = useState(false), [visible, setVisible] = useState(!document.hidden)
   const [low, setLow] = useState(() => innerWidth <= 900 || navigator.hardwareConcurrency <= 4)
   const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading')
-  const [turnRequest, setTurnRequest] = useState(0)
   const phase = useRef(status)
   const fail = useCallback(() => { phase.current = 'fallback'; setStatus('fallback') }, [])
   const ready = useCallback(() => { if (phase.current === 'loading') { phase.current = 'ready'; setStatus('ready') } }, [])
@@ -45,8 +44,7 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   }, [seen, status, simplified, inView, visible, fail])
   const fallback = <AccentFallback kind={kind}/>
   return <figure ref={host} className={`accent-object accent-${kind}`} data-accent-status={simplified ? 'simplified' : status}>
-    <div className="accent-stage">{!seen || simplified || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene kind={kind} reduced={reduced} paused={paused || !inView || !visible} low={low} onReady={ready} onUnavailable={fail} turnRequest={turnRequest}/></Suspense></AccentBoundary>}</div>
+    <div className="accent-stage">{!seen || simplified || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene kind={kind} reduced={reduced} paused={paused || !inView || !visible} low={low} onReady={ready} onUnavailable={fail}/></Suspense></AccentBoundary>}</div>
     <figcaption>{kind === 'cube' ? 'СЛОЖНОЕ — ИЗ ПРОСТЫХ ЧАСТЕЙ' : 'ФОРМА / МАТЕРИАЛ / ДВИЖЕНИЕ'}</figcaption>
-    {kind === 'cube' && <button className="cube-turn-button" disabled={status !== 'ready' || paused} onClick={() => setTurnRequest(value => value + 1)} title="Повернуть верхний слой на 90°">Повернуть грань <span aria-hidden="true">↻</span></button>}
   </figure>
 }

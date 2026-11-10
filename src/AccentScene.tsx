@@ -6,7 +6,7 @@ import type { AccentKind } from './AccentObject'
 import CanvasHealth from './CanvasHealth'
 import { RubikController, selected } from './rubikModel'
 
-type Props = { kind: AccentKind; reduced: boolean; paused: boolean; low: boolean; onReady: () => void; onUnavailable: () => void; turnRequest: number }
+type Props = { kind: AccentKind; reduced: boolean; paused: boolean; low: boolean; onReady: () => void; onUnavailable: () => void }
 function MotionDriver({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low'>) {
   const { invalidate } = useThree()
   useEffect(() => {
@@ -48,20 +48,18 @@ function usePose(paused: boolean, reduced: boolean) {
   }, [paused, reduced])
   return { clock, pointer }
 }
-function Rubik({ paused, reduced, low, turnRequest }: Pick<Props, 'paused' | 'reduced' | 'low' | 'turnRequest'>) {
+function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low'>) {
   const group = useRef<THREE.Group>(null), bodies = useRef<THREE.InstancedMesh>(null), stickers = useRef<THREE.InstancedMesh>(null)
   const { clock, pointer } = usePose(paused, reduced)
-  const { invalidate } = useThree()
   const controller = useMemo(() => new RubikController(), [])
-  const lastRequest = useRef(0)
   const resources = useMemo(() => {
-    const body = new RoundedBoxGeometry(.96, .96, .96, low ? 1 : 2, .075)
-    const sticker = new RoundedBoxGeometry(.78, .78, .055, low ? 1 : 2, .025)
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: '#929292', metalness: .95, roughness: .19 })
-    const stickerMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: .32, roughness: .18 })
+    const body = new RoundedBoxGeometry(.97, .97, .97, low ? 1 : 2, .075)
+    const sticker = new RoundedBoxGeometry(.915, .915, .055, low ? 1 : 2, .025)
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: '#080808', metalness: .18, roughness: .26 })
+    const stickerMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', metalness: .06, roughness: .21 })
     const faces: { cubie: number; normal: THREE.Vector3; q: THREE.Quaternion; color: THREE.Color }[] = []
     const normals = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
-    const colors = ['#eeeeee', '#101010', '#eeeeee', '#101010', '#101010', '#eeeeee']
+    const colors = Array(6).fill('#f5f5f5')
     for (const cell of controller.cells) normals.forEach((normal, side) => {
       const n = new THREE.Vector3(normal[0], normal[1], normal[2])
       if (cell.home[0] * n.x + cell.home[1] * n.y + cell.home[2] * n.z !== 1) return
@@ -93,16 +91,14 @@ function Rubik({ paused, reduced, low, turnRequest }: Pick<Props, 'paused' | 're
     bodies.current.instanceMatrix.needsUpdate = true; stickers.current.instanceMatrix.needsUpdate = true
   }
   useLayoutEffect(() => {
-    while (lastRequest.current < turnRequest) { controller.request(); lastRequest.current++ }
-    if (reduced) controller.finishPending()
-    update(); invalidate()
-  }, [turnRequest, reduced])
-  useLayoutEffect(() => {
     bodies.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage); stickers.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
     resources.faces.forEach((face, i) => stickers.current?.setColorAt(i, face.color))
     if (stickers.current?.instanceColor) stickers.current.instanceColor.needsUpdate = true
     update()
   }, [resources])
+  useLayoutEffect(() => {
+    if (reduced) { controller.finishPending(); update() }
+  }, [reduced, controller, resources])
   useEffect(() => {
     const bodyMesh = bodies.current, stickerMesh = stickers.current
     return () => { bodyMesh?.dispose(); stickerMesh?.dispose(); resources.body.dispose(); resources.sticker.dispose(); resources.bodyMaterial.dispose(); resources.stickerMaterial.dispose() }
@@ -115,7 +111,7 @@ function Rubik({ paused, reduced, low, turnRequest }: Pick<Props, 'paused' | 're
     if (group.current) {
       group.current.rotation.x = THREE.MathUtils.damp(group.current.rotation.x, .4 + (reduced ? 0 : pointer.current.y * .13 + Math.sin(t * .2) * .05), 3, dt)
       group.current.rotation.y = THREE.MathUtils.damp(group.current.rotation.y, -.55 + (reduced ? 0 : t * .095 + pointer.current.x * .22), 3, dt)
-      group.current.position.y = reduced ? 0 : Math.sin(t * .4) * .08
+      group.current.position.y = 0
     }
   })
   return <group ref={group} rotation={[.4, -.55, .04]}><instancedMesh ref={bodies} args={[resources.body, resources.bodyMaterial, 26]} dispose={null}/><instancedMesh ref={stickers} args={[resources.sticker, resources.stickerMaterial, 54]} dispose={null}/></group>
@@ -138,8 +134,8 @@ export default function AccentScene(props: Props) {
   }, [])
   useEffect(() => { if (!supported) props.onUnavailable() }, [supported, props.onUnavailable])
   if (!supported) return null
-  return <Canvas camera={{ position: [0, .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop="demand" dpr={props.low ? 1 : [1, 1.25]} gl={{ antialias: !props.low, alpha: true, powerPreference: 'low-power' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : 'Хромированная пространственная скульптура'}>
+  return <Canvas camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop="demand" dpr={props.low ? 1 : [1, 1.25]} gl={{ antialias: !props.low, alpha: true, powerPreference: 'low-power' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : 'Хромированная пространственная скульптура'}>
     <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced} low={props.low}/><Studio low={props.low} monochrome={props.kind === 'cube'}/>
-    {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={props.low} turnRequest={props.turnRequest}/> : <Signal paused={props.paused} reduced={props.reduced} low={props.low}/>}
+    {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={props.low}/> : <Signal paused={props.paused} reduced={props.reduced} low={props.low}/>}
   </Canvas>
 }

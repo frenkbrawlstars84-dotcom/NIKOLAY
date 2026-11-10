@@ -104,6 +104,17 @@ try {
     await page.locator('.accent-cube').scrollIntoViewIfNeeded()
     await page.locator('.accent-cube[data-accent-status="ready"]').waitFor({ timeout: 15000 })
     assert.equal(await page.locator('.accent-cube canvas').evaluate(e => getComputedStyle(e).pointerEvents), 'none')
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 })
+      await page.waitForTimeout(350)
+      const centered = await page.evaluate(() => {
+        const cube = document.querySelector('.accent-cube').getBoundingClientRect()
+        const address = document.querySelector('.telegram-address').getBoundingClientRect()
+        return cube.bottom < address.top && Math.abs(cube.x + cube.width / 2 - innerWidth / 2) < 2
+          && Math.abs(address.x + address.width / 2 - innerWidth / 2) < 2
+      })
+      assert(centered, `Cube and Telegram are centered and stacked at ${width}px`)
+    }
     assert.deepEqual(errors, [], `${url}: unexpected runtime errors`)
     await page.close()
     console.log(`PASS ${url}: StrictMode/reload, scroll, mobile, menu and contacts`)
@@ -152,7 +163,7 @@ try {
     console.log(`PASS ${failure}: cube fallback, Telegram and the rest of the app survive`)
   }
   {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
     await page.addInitScript(() => {
       window.__cubeBuffers = { body: null, colors: null }
       const proto = WebGL2RenderingContext.prototype
@@ -174,9 +185,15 @@ try {
     await page.waitForFunction(() => window.__cubeBuffers.body && window.__cubeBuffers.colors)
     const initial = await page.evaluate(() => window.__cubeBuffers.body)
     let previous = initial
-    for (let turn = 0; turn < 4; turn++) {
-      await page.getByRole('button', { name: 'Повернуть грань', exact: true }).click()
-      await page.waitForTimeout(150)
+    assert.equal(await page.locator('.accent-cube button').count(), 0, 'Cube has no controls')
+    for (let turn = 0; turn < 2; turn++) {
+      // Observe real autonomous turns in the GPU instance buffer. Wait for the
+      // committed quarter turn, rather than sampling an intermediate quaternion.
+      await page.waitForFunction(before => {
+        const values = window.__cubeBuffers.body
+        return values.some((value, i) => Math.abs(value - before[i]) > .1)
+          && values.every(value => Math.abs(value - Math.round(value)) < 1e-5)
+      }, previous, { timeout: 15000 })
       const matrices = await page.evaluate(() => window.__cubeBuffers.body)
       let changed = 0
       const centers = []
@@ -188,19 +205,26 @@ try {
       }
       assert.equal(changed, 9, 'A face turn updates exactly nine rendered cubies')
       assert.equal(new Set(centers).size, 26)
+      await page.waitForTimeout(200)
+      assert.deepEqual(await page.evaluate(() => window.__cubeBuffers.body), matrices, 'The completed layer holds its new position')
       previous = matrices
     }
-    assert(previous.every((value, i) => Math.abs(value - initial[i]) < 1e-5), 'Four rendered quarter turns restore the original cube')
     const colors = await page.evaluate(() => window.__cubeBuffers.colors)
-    for (let i = 0; i < colors.length; i += 3) assert(Math.abs(colors[i] - colors[i + 1]) < 1e-5 && Math.abs(colors[i] - colors[i + 2]) < 1e-5, 'Sticker colors are monochrome')
+    for (let i = 0; i < colors.length; i += 3) assert(colors[i] > .8 && Math.abs(colors[i] - colors[i + 1]) < 1e-5 && Math.abs(colors[i] - colors[i + 2]) < 1e-5, 'Every sticker is white')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.experience-pin')).position === 'relative')
+    await page.waitForTimeout(200)
+    const reduced = await page.evaluate(() => window.__cubeBuffers.body)
+    await page.waitForTimeout(3000)
+    assert.deepEqual(await page.evaluate(() => window.__cubeBuffers.body), reduced, 'Reduced motion stops automatic turns')
     await page.close()
-    console.log('PASS cube GPU matrices: 26 centers, 9 cubies/turn, four exact quarter turns restore the cube, monochrome stickers')
+    console.log('PASS automatic cube GPU matrices: 26 centers, 9 cubies/turn, white stickers, no controls and reduced motion')
   }
   {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
     await page.addInitScript(() => {
       const original = WebGL2RenderingContext.prototype.shaderSource
-      WebGL2RenderingContext.prototype.shaderSource = function(shader, source) { return original.call(this, shader, source.includes('float ribbons') ? 'INVALID_SHADER' : source) }
+      WebGL2RenderingContext.prototype.shaderSource = function(shader, source) { return original.call(this, shader, source.includes('TON_RAY_SCENE') ? 'INVALID_SHADER' : source) }
     })
     await healthy(page, preview)
     await page.evaluate(() => { const r = document.querySelector('.experience-track').getBoundingClientRect(); window.scrollTo(0, scrollY + r.top + (r.height - innerHeight) * .66) })
