@@ -54,7 +54,7 @@ function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low
     if (group.current) {
       group.current.position.y=Math.sin(clock.current*.7)*.045
       group.current.rotation.x = .4 + smoothPointer.current.y * .1 + Math.sin(clock.current * .17) * .025
-      group.current.rotation.y = -.55 + clock.current * .14625 + smoothPointer.current.x * .16
+      group.current.rotation.y = -.55 + clock.current * .1681875 + smoothPointer.current.x * .16
     }
   })
   return <group ref={group} rotation={[.4, -.55, .02]}><primitive object={rig.root} dispose={null}/></group>

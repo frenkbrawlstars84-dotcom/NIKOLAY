@@ -1,3 +1,5 @@
+> Архив предыдущей версии. Актуальное поведение описано в [PREMIUM_REPORT.md](PREMIUM_REPORT.md); повторный проход через hero удалён.
+
 # Ultimate 3D experience — аудит и проверка
 
 Рабочая версия сохранена в предыдущей ветке `codex/cinematic-black-hole-intro-20261111`. До изменений создана отдельная ветка `codex/ultimate-portal-immersion-20261111`.

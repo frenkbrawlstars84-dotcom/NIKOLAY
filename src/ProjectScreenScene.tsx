@@ -14,12 +14,17 @@ export type ScreenSceneProps = { position: MotionValue<number>; pointer: Mutable
 function placeholder(project: Project) {
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=800
   const ctx=canvas.getContext('2d')!
-  const gradient=ctx.createLinearGradient(0,0,1280,800);gradient.addColorStop(0,'#24262a');gradient.addColorStop(1,'#101113')
+  const beauty=project.name.includes('AURA')
+  const gradient=ctx.createLinearGradient(0,0,1280,800);gradient.addColorStop(0,beauty?'#39352f':'#192b49');gradient.addColorStop(1,beauty?'#111314':'#080d18')
   ctx.fillStyle=gradient;ctx.fillRect(0,0,1280,800)
   ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.strokeRect(50,50,1180,700)
   ctx.fillStyle='#a0a0a0';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText(project.upcoming?'СЛЕДУЮЩАЯ ИСТОРИЯ':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ',640,285)
   ctx.fillStyle='#f0f0f0';ctx.font='54px Arial';ctx.fillText(project.upcoming?'YOUR NEXT IDEA':project.name,640,405)
   ctx.fillStyle='#858585';ctx.font='16px Arial';ctx.fillText(project.upcoming?'Место для вашего проекта':'Обложка проекта · не скриншот',640,465)
+  ctx.textAlign='left';ctx.fillStyle=beauty?'#d2bda0':'#a8c4ed';ctx.font='12px Arial';ctx.fillText('NIKOLAY / DIGITAL SHOWCASE',80,95)
+  ctx.strokeStyle=beauty?'#dbc4a04a':'#98c4ff45';ctx.lineWidth=1.5
+  for(let i=0;i<19;i++){ctx.beginPath();ctx.ellipse(1040,420,120+i*8,220-i*4,Math.PI*.2+i*.035,0,Math.PI*2);ctx.stroke()}
+  ctx.fillStyle='#bdc9da';ctx.font='13px Arial';ctx.fillText('Демонстрационная обложка · не скриншот',80,730)
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace
   return texture
 }
@@ -29,7 +34,7 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     const cover=placeholder(project)
     const frame=new RoundedBoxGeometry(5.6,3.76,.18,props.low?1:2,.075)
     const screen=new THREE.PlaneGeometry(5.34,3.3375)
-    const body=new THREE.MeshStandardMaterial({color:'#303033',metalness:.85,roughness:.23,transparent:true})
+    const body=new THREE.MeshStandardMaterial({color:'#47566d',metalness:.85,roughness:.23,transparent:true})
     const face=new THREE.MeshBasicMaterial({map:cover,toneMapped:false,transparent:true})
     return {cover,frame,screen,body,face}
   },[project,props.low])
@@ -54,10 +59,10 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     const blend=props.reduced?1:1-Math.exp(-dt*9)
     group.current.position.x=THREE.MathUtils.lerp(group.current.position.x,props.reduced?0:offset*2.05,blend)
     group.current.position.y=THREE.MathUtils.lerp(group.current.position.y,props.reduced?0:distance*.12,blend)
-    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.28,blend)
+    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.42,blend)
     group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*.03),blend))
-    group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.18*attention,blend)
-    group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.14*attention,blend)
+    group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.22*attention,blend)
+    group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.16*attention,blend)
     resources.face.opacity=props.reduced?1:Math.max(.5,1-distance*.18)
     resources.body.opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.35,.15,1)
   })

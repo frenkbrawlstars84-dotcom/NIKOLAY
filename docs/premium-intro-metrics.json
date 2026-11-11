@@ -1,0 +1,69 @@
+{
+  "note": "Instrumented software WebGL test, including screenshots and readPixels. Not an isolated hardware FPS benchmark.",
+  "samples": [
+    {
+      "device": "desktop",
+      "durationMs": 7123.8,
+      "dimensions": {
+        "width": 1440,
+        "height": 900,
+        "cssWidth": 1440,
+        "cssHeight": 900
+      },
+      "stages": {
+        "black-hole": {
+          "frames": 3,
+          "medianMs": 101.1,
+          "p95Ms": 101.1
+        },
+        "plunge": {
+          "frames": 9,
+          "medianMs": 166.6,
+          "p95Ms": 231.5
+        },
+        "galaxies": {
+          "frames": 43,
+          "medianMs": 61.6,
+          "p95Ms": 92.3
+        },
+        "arrival": {
+          "frames": 25,
+          "medianMs": 55.3,
+          "p95Ms": 102.8
+        }
+      }
+    },
+    {
+      "device": "mobile",
+      "durationMs": 6999.9,
+      "dimensions": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "stages": {
+        "black-hole": {
+          "frames": 12,
+          "medianMs": 44.6,
+          "p95Ms": 143.6
+        },
+        "plunge": {
+          "frames": 30,
+          "medianMs": 43.9,
+          "p95Ms": 135.7
+        },
+        "galaxies": {
+          "frames": 137,
+          "medianMs": 19.2,
+          "p95Ms": 36.0
+        },
+        "arrival": {
+          "frames": 68,
+          "medianMs": 16.7,
+          "p95Ms": 19.5
+        }
+      }
+    }
+  ]
+}

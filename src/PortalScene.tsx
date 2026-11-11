@@ -6,7 +6,7 @@ import BlackHole from './BlackHole'
 import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import { ARRIVAL_TIME, introJourney } from './introJourney'
-import { spiralGalaxy } from './galaxyGeometry'
+import Galaxy from './Galaxy'
 
 type Props={onReady:()=>void;onUnavailable:()=>void;onArrival:()=>void;host:RefObject<HTMLElement|null>}
 const pointVertex=`
@@ -48,16 +48,6 @@ const nebulaFragment=`
     gl_FragColor=vec4(mix(vec3(.3,.37,.48),vec3(.64,.69,.76),cloud),wisps*uOpacity*.42);
   }
 `
-function Galaxy({ seed, position, rotation, scale, opacity, low }: { seed:number;position:[number,number,number];rotation:[number,number,number];scale:number;opacity:RefObject<number>;low:boolean }) {
-  const data=useMemo(()=>spiralGalaxy(seed,low?1800:4200),[seed,low])
-  const uniforms=useMemo(()=>({uOpacity:{value:0},uPixelRatio:{value:Math.min(devicePixelRatio,1.25)}}),[])
-  const group=useRef<THREE.Points>(null),material=useRef<THREE.ShaderMaterial>(null),core=useRef<THREE.ShaderMaterial>(null)
-  useFrame((_,delta)=>{if(material.current)material.current.uniforms.uOpacity.value=opacity.current*.78;if(core.current)core.current.uniforms.uOpacity.value=opacity.current*.85;if(group.current)group.current.rotation.z+=Math.min(delta,.1)*.018})
-  return <group position={position} rotation={rotation} scale={scale}><points ref={group}>
-    <bufferGeometry><bufferAttribute attach="attributes-position" args={[data.positions,3]}/><bufferAttribute attach="attributes-color" args={[data.colors,3]}/></bufferGeometry>
-    <shaderMaterial ref={material} vertexShader={pointVertex} fragmentShader={pointFragment} uniforms={uniforms} transparent depthWrite={false} blending={THREE.AdditiveBlending}/>
-  </points><mesh scale={[2.6,2.6,1]}><planeGeometry/><shaderMaterial ref={core} uniforms={uniforms} vertexShader="varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}" fragmentShader="varying vec2 vUv;uniform float uOpacity;void main(){vec2 p=(vUv-.5)*2.;float light=exp(-dot(p,p)*12.)*.8+exp(-dot(p,p)*4.)*.1;gl_FragColor=vec4(.82,.88,1.,light*uOpacity);}" transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide}/></mesh></group>
-}
 function Nebula({z,index,opacity,clock}:{z:number;index:number;opacity:RefObject<number>;clock:RefObject<number>}) {
   const material=useRef<THREE.ShaderMaterial>(null)
   const uniforms=useMemo(()=>({uOpacity:{value:0},uTime:{value:0}}),[])
@@ -89,7 +79,7 @@ function UniverseFlight({opacity,clock,speed,low}:{opacity:RefObject<number>;clo
     <Galaxy seed={287} position={[12,-5,-48]} rotation={[-.6,.4,.7]} scale={1.8} opacity={opacity} low={low}/>
     <Galaxy seed={951} position={[-17,-7,-76]} rotation={[.2,.3,-.6]} scale={2.3} opacity={opacity} low={low}/>
     <Galaxy seed={442} position={[9,9,-105]} rotation={[-.4,-.2,.2]} scale={1.8} opacity={opacity} low={low}/>
-    <Galaxy seed={319} position={[-10,5,-160]} rotation={[.55,.2,-.8]} scale={2.6} opacity={opacity} low={low}/>
+    <Galaxy seed={319} position={[-14,9,-132]} rotation={[.55,.2,-.8]} scale={1.9} opacity={opacity} low={low}/>
   </group>
 }
 function Flight({onReady,onUnavailable,onArrival,host,low,simple}:{low:boolean;simple:boolean}&Props) {

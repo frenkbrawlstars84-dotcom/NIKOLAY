@@ -14,11 +14,17 @@ const rayFragment = `
   uniform float uPortal;
   uniform float uDetail;
   varying vec2 vUv;
-  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+  // Polynomial hashing avoids dozens of transcendental calls per disk sample,
+  // particularly expensive on software WebGL, without losing irregular gas.
+  float hash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
   float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){
-    float value=noise(p)*.53+noise(p*2.03+4.7)*.27+noise(p*4.07+9.3)*.13;
-    value+=noise(p*8.11+2.6)*.07*uDetail;
+    #ifdef LOW_QUALITY
+      float value=noise(p)*.6+noise(p*2.03+4.7)*.28+noise(p*4.07+9.3)*.12;
+    #else
+      float value=noise(p)*.53+noise(p*2.03+4.7)*.27+noise(p*4.07+9.3)*.13;
+      value+=noise(p*8.11+2.6)*.07*uDetail;
+    #endif
     return value;
   }
   float starLayer(vec2 angular,float scale,float salt){
@@ -92,8 +98,8 @@ const rayFragment = `
     float light=direct*.82+lensed*.68+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 tint=mix(vec3(1.),vec3(1.35,.96,.63),uPortal);
-    vec3 emission=vec3(.92)*(1.-exp(-light*1.85*tint));
+    vec3 tint=mix(vec3(1.),vec3(1.55,1.06,.67),uPortal);
+    vec3 emission=vec3(.92)*(1.-exp(-light*2.05*tint));
     emission+=vec3(1.,.38,.12)*exp(-abs(impact-critical)*2.8)*.045*uPortal*outside;
     gl_FragColor=vec4(background+emission,1);
   }

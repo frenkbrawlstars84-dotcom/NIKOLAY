@@ -97,8 +97,8 @@ try {
     await healthy(page, url)
     for (let i = 0; i < 3; i++) { await page.reload(); await healthy(page) }
     assert.equal(await page.locator('.opening').evaluate(e=>e.nextElementSibling.id),'projects')
-    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'sticky','Hero pins only for the energy passage')
-    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height>innerHeight*2),'Camera passage has a measured scroll range')
+    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'relative','Hero remains free of repeated journeys')
+    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height<innerHeight*1.5),'Hero has no scroll runway')
     for(const selector of ['#projects','#about','#capabilities','#contact','#about','#projects','.header']){
       await page.locator(selector).scrollIntoViewIfNeeded();await page.waitForTimeout(200)
       const sky=await page.locator('.ambient-background').boundingBox()
@@ -148,7 +148,7 @@ try {
     if (failure === 'shader') await page.addInitScript(() => {
       const original = WebGL2RenderingContext.prototype.shaderSource
       WebGL2RenderingContext.prototype.shaderSource = function(shader, source) {
-        return original.call(this, shader, source.includes('HERO_ENERGY_PORTAL') ? 'INVALID_SHADER' : source)
+        return original.call(this, shader, source.includes('HERO_ORBITAL_NEXUS') ? 'INVALID_SHADER' : source)
       }
     })
     if (failure === 'context-lost') {

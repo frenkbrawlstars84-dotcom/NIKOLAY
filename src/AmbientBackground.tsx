@@ -16,9 +16,9 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
     const pointer = { x: 0, y: 0 }, drift = { x: 0, y: 0 }
     let seed = 48271
     const random = () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646 }
-    const stars = Array.from({ length: 260 }, () => ({ x: random(), y: random(), depth: .25 + random() * .75, phase: random() * Math.PI * 2, size: .3 + random() * .9 }))
+    const stars = Array.from({ length: 410 }, () => ({ x: random(), y: random(), depth: .25 + random() * .75, phase: random() * Math.PI * 2, size: .3 + random() * .9 }))
     const cloud = (rgb: number[], offset: number) => {
-      const size = 192, texture = document.createElement('canvas')
+      const size = 256, texture = document.createElement('canvas')
       texture.width = texture.height = size
       const paint = texture.getContext('2d')!
       const pixels = paint.createImageData(size, size)
@@ -43,7 +43,7 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       paint.putImageData(pixels, 0, 0)
       return texture
     }
-    const blueCloud = cloud([103, 113, 130], .4), violetCloud = cloud([118, 116, 132], 1.8)
+    const blueCloud = cloud([84, 110, 150], .4), violetCloud = cloud([121, 112, 147], 1.8)
     const galaxy=document.createElement('canvas');galaxy.width=galaxy.height=512
     const g=galaxy.getContext('2d')!,spiral=spiralGalaxy(823,3500)
     const core=g.createRadialGradient(256,256,0,256,256,65)
@@ -58,11 +58,12 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       ctx.clearRect(0, 0, width, height)
       if (!reduced && !paused) { drift.x += (pointer.x - drift.x) * .035; drift.y += (pointer.y - drift.y) * .035 }
       const scroll = reduced ? 0 : window.scrollY * .00012
+      const chapter = reduced ? 0 : Math.min(1,window.scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight))
       ctx.save()
       ctx.globalCompositeOperation = 'screen'
-      ctx.translate(width * .76 + Math.sin(time * .035 + scroll) * 30 + drift.x * 15, height * .43 + drift.y * 10)
-      ctx.rotate(-.35 + Math.sin(time * .02) * .08)
-      ctx.globalAlpha = low ? .7 : .95
+      ctx.translate(width * .76 + Math.sin(time * .035 + scroll) * 30 + drift.x * 15, height * (.43+chapter*.15) + drift.y * 10)
+      ctx.rotate(-.35 + Math.sin(time * .02) * .08+chapter*.3)
+      ctx.globalAlpha = low ? .65 : .8
       ctx.drawImage(blueCloud, -width * .49, -height * .68, width * 1.06, height * 1.5)
       if (!low) {
         ctx.rotate(.8)
@@ -78,7 +79,7 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
         ctx.scale(1,.58);ctx.globalAlpha=.18+gal.depth*.08;ctx.globalCompositeOperation='screen'
         ctx.drawImage(galaxy,-size/2,-size/2,size,size);ctx.restore()
       }
-      const count = low ? 105 : stars.length
+      const count = low ? 160 : stars.length
       for (let i = 0; i < count; i++) {
         const s = stars[i], parallax = reduced ? 0 : scroll * s.depth * 30
         const x = (s.x * width + drift.x * s.depth * 18 + Math.sin(time * .015 + s.phase) * 3 + width) % width

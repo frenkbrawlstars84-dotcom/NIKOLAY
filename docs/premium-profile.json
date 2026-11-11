@@ -1,0 +1,36 @@
+{
+  "tag": "premium",
+  "renderer": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "gpuTimers": false
+  },
+  "hero": {
+    "durationMs": 3505.5,
+    "frames": 119,
+    "fps": 33.94665525602625,
+    "raf": 119,
+    "medianMs": 28,
+    "p95Ms": 38.69999999925494,
+    "longTasks": [],
+    "scriptMs": 92.21000000000012,
+    "layoutMs": 0,
+    "taskMs": 3572.3559999999993
+  },
+  "cube": {
+    "durationMs": 3507.199999999255,
+    "frames": 87,
+    "fps": 24.8061131386914,
+    "raf": 87,
+    "medianMs": 37.600000001490116,
+    "p95Ms": 59.69999999925494,
+    "longTasks": [
+      50,
+      53
+    ],
+    "scriptMs": 73.39499999999988,
+    "layoutMs": 0,
+    "taskMs": 3101.248000000002
+  },
+  "errors": [],
+  "reportPath": "/tmp/nikolay-profile-premium.json"
+}

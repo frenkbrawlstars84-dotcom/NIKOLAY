@@ -1,0 +1,18 @@
+/* Editorial spacing and restrained cold light across the existing universe. */
+.header{height:96px;background:linear-gradient(180deg,#080c13ee,#080c1390);border-bottom:1px solid #a4c1ea1c;backdrop-filter:blur(14px)}
+.brand{letter-spacing:-1px}.brand small{color:#a1b2ca;letter-spacing:3px}.nav{gap:34px}.nav a{position:relative;padding-block:12px;transition:color .3s}.nav a::after{content:'';position:absolute;left:0;right:0;bottom:5px;height:1px;background:#b5d4ff;transform:scaleX(0);transform-origin:left;transition:transform .3s}.nav a:hover::after{transform:scaleX(1)}
+.header-contact{border:1px solid #b1cdf82a;border-radius:24px;padding:12px 18px;transition:background .3s,border-color .3s}.header-contact:hover{background:#9ebae012;border-color:#c2d8f18a}
+.hero-meta{color:#91a4bd;letter-spacing:2px}.hero-greeting{color:#c4d1e2}.hero h1{font-size:clamp(54px,5.6vw,94px);letter-spacing:-4.5px;line-height:1.04}.hero h1 em{color:#bbcbe0}
+.experience-pin{background:linear-gradient(130deg,#070b13ac,#101c2b30)}
+.hero-copy::before{background:radial-gradient(ellipse at 10% 50%,#070a12fa 0%,#070a12df 48%,#070a1260 74%,transparent 90%)}
+.hero-actions .button{border-radius:4px;background:linear-gradient(135deg,#f4f6f8,#c4d0de);box-shadow:0 0 36px #9cbdeb0c}.hero-actions .button:hover{box-shadow:0 8px 40px #7da8e024}
+.section-label{letter-spacing:2px;color:#93a9c6}.section-heading em{color:#b6c8df}.work .section-heading{margin-bottom:55px}
+.gallery-index button{border-bottom-color:#a6c9f125;transition:color .3s,background .3s,padding-left .3s}.gallery-index button:hover{color:#edf5ff;background:linear-gradient(90deg,#779bc611,transparent)}
+.project-screens{border:1px solid #c0d6f01f;border-radius:14px;background:radial-gradient(ellipse at 50% 45%,#526a8623,transparent 70%);box-shadow:0 32px 100px #0004,inset 0 1px #e2ecff0a}
+.project-meta-deck .project-info{padding:25px 5px 12px}.gallery-project-visit{border-radius:30px;border-color:#b6cfee40;background:linear-gradient(140deg,#233144,#111720);transition:box-shadow .3s,background .3s}.gallery-project-visit:hover{box-shadow:0 0 26px #7ca8d71c}
+.about{background:linear-gradient(180deg,#0a0f18a6,#11192870,#090e1866)}.capabilities{background:linear-gradient(180deg,transparent,#111c2c3b,transparent)}
+.lab{border-color:#adc9ef24;background:linear-gradient(140deg,#15203355,#080d1666);border-radius:8px;transition:border-color .35s,box-shadow .35s}.lab:hover{border-color:#a5c6f34d;box-shadow:0 12px 40px #0002}
+.contact{background:radial-gradient(ellipse at 42% 64%,#23334c38,transparent 55%),#0c111bd1}.contact-cube-layout .contact-cta{border-radius:30px;background:linear-gradient(135deg,#f0f5fa,#bdcde1);box-shadow:0 0 35px #9fc7ff0d}.telegram-username{color:#e8f0fb}.telegram-direct{color:#99afcd}
+@media(max-width:900px){.header{height:78px}.header-contact{display:none}.hero h1{letter-spacing:-2.5px}.nav{gap:24px}}
+@media(max-width:680px){.hero h1{font-size:clamp(40px,11.5vw,60px)}.project-screens{border-radius:9px}.work .section-heading{margin-bottom:35px}}
+@media(prefers-reduced-motion:reduce){.nav a::after,.header-contact,.lab{transition:none}}
