@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { AccentKind } from './AccentObject'
+import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import { RubikController } from './rubikModel'
 import { createRubikRig } from './rubikRig'
@@ -51,8 +52,9 @@ function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low
     smoothPointer.current.x = THREE.MathUtils.damp(smoothPointer.current.x, pointer.current.x, 4, dt)
     smoothPointer.current.y = THREE.MathUtils.damp(smoothPointer.current.y, pointer.current.y, 4, dt)
     if (group.current) {
+      group.current.position.y=Math.sin(clock.current*.7)*.045
       group.current.rotation.x = .4 + smoothPointer.current.y * .1 + Math.sin(clock.current * .17) * .025
-      group.current.rotation.y = -.55 + clock.current * .0975 + smoothPointer.current.x * .16
+      group.current.rotation.y = -.55 + clock.current * .14625 + smoothPointer.current.x * .16
     }
   })
   return <group ref={group} rotation={[.4, -.55, .02]}><primitive object={rig.root} dispose={null}/></group>
@@ -70,7 +72,7 @@ export default function AccentScene(props: Props) {
     const renderer=String(context.getParameter(debug?debug.UNMASKED_RENDERER_WEBGL:context.RENDERER))
     setSoftware(/swiftshader|llvmpipe|softpipe|software/i.test(renderer))
   }} camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop={props.paused || props.reduced ? 'demand' : 'always'} dpr={low ? 1 : [1, 1.5]} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : props.kind === 'glass' ? 'Стеклянный многогранник. Перетаскивайте мышью или используйте стрелки для вращения' : 'Хромированный узел. Перетаскивайте мышью или используйте стрелки для вращения'}>
-    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced}/><StudioLighting low={low} monochrome={true}/>
+    <AdaptiveQuality low={low} active={!props.paused&&!props.reduced}><CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced}/><StudioLighting low={low} monochrome={true}/>
     {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={low}/> : props.kind === 'glass' ? <GlassPolyhedron paused={props.paused} reduced={props.reduced} low={low}/> : <ChromeKnot paused={props.paused} reduced={props.reduced} low={low}/>}
-  </Canvas>
+  </AdaptiveQuality></Canvas>
 }

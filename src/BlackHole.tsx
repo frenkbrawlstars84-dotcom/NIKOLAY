@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useQuality } from './AdaptiveQuality'
 
 const fullscreenVertex = `varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`
 const rayFragment = `
@@ -11,12 +12,13 @@ const rayFragment = `
   uniform float uAspect;
   uniform vec2 uResolution;
   uniform float uPortal;
+  uniform float uDetail;
   varying vec2 vUv;
   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
   float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){
     float value=noise(p)*.53+noise(p*2.03+4.7)*.27+noise(p*4.07+9.3)*.13;
-    value+=noise(p*8.11+2.6)*.07;
+    value+=noise(p*8.11+2.6)*.07*uDetail;
     return value;
   }
   float starLayer(vec2 angular,float scale,float salt){
@@ -47,23 +49,10 @@ const rayFragment = `
     float spin=uTime*.12/(r*sqrt(r))+r*.2;
     float cs=cos(spin),sn=sin(spin);
     vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
-    #ifdef SOFTWARE_FALLBACK
-      float clouds=noise(orbit*r*2.6);
-    #else
-      float clouds=fbm(orbit*r*2.6);
-    #endif
-    // Uneven orbital filaments retain texture at close range without cloudy,
-    // screen-space blur. Exposure is bounded before adding the small glow.
+    float clouds=fbm(orbit*r*2.6);
     vec2 flow=orbit*r;
-    #ifdef SOFTWARE_FALLBACK
-      float phase=r*43.+dot(orbit,vec2(7.,3.))+clouds*3.;
-      float footprint=fwidth(phase);
-      float filaments=.5+.5*sin(phase)*exp(-footprint*footprint*.5);
-      float detail=hash(floor(orbit*r*90.));
-    #else
-      float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
-      float detail=noise(orbit*r*27.);
-    #endif
+    float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
+    float detail=noise(orbit*r*37.);
     float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+pow(detail,6.)*.07;
     float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
@@ -103,8 +92,8 @@ const rayFragment = `
     float light=direct*.82+lensed*.68+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 tint=mix(vec3(1.),vec3(1.8,.91,.42),uPortal);
-    vec3 emission=vec3(.92)*(1.-exp(-light*2.05*tint));
+    vec3 tint=mix(vec3(1.),vec3(1.35,.96,.63),uPortal);
+    vec3 emission=vec3(.92)*(1.-exp(-light*1.85*tint));
     emission+=vec3(1.,.38,.12)*exp(-abs(impact-critical)*2.8)*.045*uPortal*outside;
     gl_FragColor=vec4(background+emission,1);
   }
@@ -129,13 +118,14 @@ const bloomFragment = `
   }
 `
 export default function BlackHole({ opacity, clock, low, simple = false, onUnavailable }: { simple?: boolean; opacity: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
+  const tier=useQuality()
   const mesh = useRef<THREE.Mesh>(null)
   const { gl, camera, size, viewport } = useThree()
   const checked = useRef(false)
   const resources = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2,2)
     const target = new THREE.WebGLRenderTarget(1,1,{ depthBuffer:false, stencilBuffer:false, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter })
-    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:{...(low?{LOW_QUALITY:1}:{}),...(simple?{SOFTWARE_FALLBACK:1}:{})}, depthTest:false, depthWrite:false, uniforms:{uPortal:{value:1},uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
+    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:{...(low?{LOW_QUALITY:1}:{}),...(simple?{SOFTWARE_FALLBACK:1}:{})}, depthTest:false, depthWrite:false, uniforms:{uDetail:{value:1},uPortal:{value:1},uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
     const composite = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:bloomFragment, defines:{...(low?{LOW_QUALITY:1}:{}),...(simple?{SOFTWARE_FALLBACK:1}:{})}, depthTest:false,depthWrite:false,transparent:true,uniforms:{uScene:{value:target.texture},uTexel:{value:new THREE.Vector2(1,1)},uOpacity:{value:0}} })
     const scene = new THREE.Scene();scene.add(new THREE.Mesh(geometry,ray))
     const view = new THREE.OrthographicCamera(-1,1,1,-1,0,1)
@@ -153,12 +143,12 @@ export default function BlackHole({ opacity, clock, low, simple = false, onUnava
   // Retain the scene graph during StrictMode effect replay; disposed GPU
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
-  useFrame(()=>{
+  useFrame((_,delta)=>{
     const active=opacity.current>.001
     if(mesh.current)mesh.current.visible=active
     if(!active)return
     resources.ray.uniforms.uEye.value.copy(camera.position)
-    resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
+    resources.ray.uniforms.uDetail.value=THREE.MathUtils.damp(resources.ray.uniforms.uDetail.value,tier==='HIGH'?1:tier==='MEDIUM'?.7:.4,3,Math.min(delta,.25));resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
     resources.composite.uniforms.uOpacity.value=opacity.current
     const previous=gl.getRenderTarget()
     try{

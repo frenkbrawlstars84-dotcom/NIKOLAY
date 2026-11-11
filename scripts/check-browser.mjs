@@ -97,8 +97,8 @@ try {
     await healthy(page, url)
     for (let i = 0; i < 3; i++) { await page.reload(); await healthy(page) }
     assert.equal(await page.locator('.opening').evaluate(e=>e.nextElementSibling.id),'projects')
-    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'relative','Hero is not a scroll portal')
-    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height<=innerHeight+160),'No empty multi-viewport runway')
+    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'sticky','Hero pins only for the energy passage')
+    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height>innerHeight*2),'Camera passage has a measured scroll range')
     for(const selector of ['#projects','#about','#capabilities','#contact','#about','#projects','.header']){
       await page.locator(selector).scrollIntoViewIfNeeded();await page.waitForTimeout(200)
       const sky=await page.locator('.ambient-background').boundingBox()
@@ -106,7 +106,7 @@ try {
       assert.equal(await page.locator('.cosmic-intro,.ton-caption,.horizon-shade,.passage-copy').count(),0,'No repeated dive or portal UI during scrolling')
     }
     assert.equal(await page.evaluate(()=>window.__unexpectedPortal),0,'Main site never compiles a black hole')
-    await page.evaluate(()=>scrollTo(0,0))
+    await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(500)
     assert.equal(await page.locator('.hero-copy').evaluate(e=>e.inert),false)
     await projectNavigation(page, url, 'Открыть сайт NEXORA DIGITAL')
     await page.setViewportSize({ width: 390, height: 844 })

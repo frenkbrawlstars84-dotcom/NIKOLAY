@@ -21,14 +21,16 @@ const capabilities=['Современные лендинги','Сайты для
 const demoDescriptions=['Нажмите: идея превращается в действие.','Проведите курсором: интерфейс следует за вами.','Смените формат: композиция подстраивается.','Запустите движение: форма меняет состояние.','Подключите модуль: возможности расширяются.']
 const about='Привет, я Николай. Занимаюсь разработкой современных сайтов для бизнеса. Мне нравится превращать идеи в удобные, привлекательные и технологичные цифровые проекты.'
 function App({ introActive = false }: { introActive?: boolean }){
- const reduced=!!useReducedMotion(); const root=useRef<HTMLDivElement>(null);const [paused,setPaused]=useState(false);const [menu,setMenu]=useState(false);const anchor=useRef<HTMLDivElement>(null);const [demo,setDemo]=useState([false,false,false,false,false]);
+ const reduced=!!useReducedMotion(); const root=useRef<HTMLDivElement>(null);const journey=useRef(0);const [paused,setPaused]=useState(false);const [menu,setMenu]=useState(false);const anchor=useRef<HTMLDivElement>(null);const [demo,setDemo]=useState([false,false,false,false,false]);
+ const [tall,setTall]=useState(()=>innerHeight>650)
+ useEffect(()=>{const media=matchMedia('(min-height:651px)'),change=()=>setTall(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change)},[])
  const [sceneStatus,setSceneStatus]=useState<SceneStatus>('loading')
  const toggle=(i:number)=>setDemo(v=>v.map((x,n)=>n===i?!x:x))
- useCinematicFlow(root,anchor,reduced)
+ useCinematicFlow(root,anchor,reduced,journey,sceneStatus==='ready'&&tall)
  const telegram=contacts.telegramUrl
  return <MotionConfig reducedMotion="user"><div ref={root} className={`site-root visual-status-${sceneStatus} portal-revealed`}><AmbientBackground reduced={reduced} paused={paused||introActive}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening"><div className="experience-track"><div className="experience-pin">
- <div className="experience-art"><SceneLayer reduced={reduced} paused={paused||introActive} anchor={anchor} onStatus={setSceneStatus} deferred={introActive}/></div>
+ <div className="experience-art"><SceneLayer reduced={reduced} paused={paused||introActive} anchor={anchor} onStatus={setSceneStatus} progress={journey} deferred={introActive}/></div>
  <section className="hero shell">
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
    <div className="hero-composition">

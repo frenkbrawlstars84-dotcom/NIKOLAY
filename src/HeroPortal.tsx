@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useQuality } from './AdaptiveQuality'
+import { portalJourney } from './portalJourney'
 
 export type PortalFrame = { x: number; y: number; width: number; height: number }
-type Props = { reduced: boolean; paused: boolean; low: boolean; frame: RefObject<PortalFrame>; anchor: RefObject<HTMLDivElement | null> }
+type Props = { progress:RefObject<number>; reduced: boolean; paused: boolean; low: boolean; frame: RefObject<PortalFrame>; anchor: RefObject<HTMLDivElement | null> }
 
 // Four batches, no framebuffer enlargement or postprocessing. Width is real
 // geometry, with a soft emissive profile inside each ribbon rather than lines.
@@ -100,7 +102,7 @@ const arcFragment=`
   }
 `
 const particleVertex=`
-  uniform float uTime;uniform float uReveal;uniform float uVisibility;uniform float uDpr;uniform vec2 uPointer;
+  uniform float uTime;uniform float uReveal;uniform float uVisibility;uniform float uDpr;uniform float uProgress;uniform vec2 uPointer;
   attribute float aSeed;attribute float aPath;varying float vAlpha;
   void main(){
     float t=fract(aPath+uTime*(.033+aSeed*.026));
@@ -108,6 +110,7 @@ const particleVertex=`
     float radius=mix(2.55,.18,t)*(.62+aSeed*.55);
     vec3 p=vec3(cos(angle)*radius,sin(angle)*radius,.95-t*5.5);
     p.xy+=vec2(.32,-.06)*t*t+uPointer*(.04+.06*t);
+    if(aSeed>.8){float angle=aSeed*137.5;float r=1.+aSeed*5.;p=vec3(cos(angle)*r,sin(angle)*r,-5.-t*24.);}
     vec4 view=modelViewMatrix*vec4(p,1.);
     gl_Position=projectionMatrix*view;
     gl_PointSize=clamp((9.+aSeed*10.)*uDpr/max(1.,-view.z),1.,3.5*uDpr);
@@ -116,12 +119,13 @@ const particleVertex=`
 `
 const particleFragment=`varying float vAlpha;void main(){float r=length(gl_PointCoord-.5);gl_FragColor=vec4(.72,.83,1.,exp(-r*r*18.)*vAlpha);}`
 
-export default function HeroPortal({ reduced, paused, low, frame, anchor }: Props) {
+export default function HeroPortal({ progress, reduced, paused, low, frame, anchor }: Props) {
+  const tier=useQuality()
   const root=useRef<THREE.Group>(null),clock=useRef(0),fresh=useRef(true)
   const intent=useRef({x:0,y:0,at:-Infinity}),pointer=useRef(new THREE.Vector2())
   const {camera,size,gl,invalidate}=useThree()
   const resources=useMemo(()=>{
-    const uniforms={uTime:{value:0},uReveal:{value:reduced?1:0},uVisibility:{value:1},uPointer:{value:new THREE.Vector2()},uDpr:{value:1}}
+    const uniforms={uTime:{value:0},uReveal:{value:reduced?1:0},uVisibility:{value:1},uPointer:{value:new THREE.Vector2()},uDpr:{value:1},uProgress:{value:0}}
     const make=(vertexShader:string,fragmentShader:string)=>new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,transparent:true,depthWrite:false,depthTest:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})
     const ribbons=stripGeometry(7,low?72:128),arcs=stripGeometry(4,low?56:96)
     const membrane=new THREE.BufferGeometry(),paths:number[]=[],sides:number[]=[],lanes:number[]=[],indices:number[]=[]
@@ -151,23 +155,27 @@ export default function HeroPortal({ reduced, paused, low, frame, anchor }: Prop
   },[paused,reduced,anchor,invalidate])
   useFrame((_,delta)=>{
     const dt=fresh.current?0:Math.max(0,delta);fresh.current=false
-    if(!paused&&!reduced)clock.current+=dt
+    if(!paused&&!reduced)clock.current+=dt*(1+portalJourney(progress.current).activation*.6)
     const activity=reduced||paused?0:Math.exp(-Math.max(0,performance.now()-intent.current.at-250)*.0025)
     pointer.current.x=THREE.MathUtils.damp(pointer.current.x,intent.current.x*activity,4.5,dt)
     pointer.current.y=THREE.MathUtils.damp(pointer.current.y,intent.current.y*activity,4.5,dt)
     const u=resources.uniforms
     u.uTime.value=clock.current;u.uPointer.value.copy(pointer.current);u.uDpr.value=gl.getPixelRatio()
     u.uReveal.value=reduced||paused?1:THREE.MathUtils.damp(u.uReveal.value,1,4,dt)
+    const p=reduced?0:progress.current,j=portalJourney(p)
+    u.uProgress.value=p
+    resources.particles.setDrawRange(0,tier==='LOW'?240:tier==='MEDIUM'?Math.min(480,low?240:720):low?240:720)
     const scroll=reduced?0:THREE.MathUtils.clamp(scrollY/Math.max(640,innerHeight),0,1)
-    u.uVisibility.value=1-THREE.MathUtils.smoothstep(scroll,.2,.95)*.8
+    u.uVisibility.value=j.opacity*(1+j.activation*.14)
     const height=2*7.4*Math.tan(42*Math.PI/360),width=height*size.width/size.height
     if(root.current){
-      root.current.position.set(frame.current.x*width,frame.current.y*height,.05)
-      const scale=Math.min(frame.current.width*width/5.65,frame.current.height*height/5.25)
+      root.current.position.set(frame.current.x*width*(1-j.center),frame.current.y*height*(1-j.center),.05)
+      const initialScale=Math.min(frame.current.width*width/5.65,frame.current.height*height/5.25)
+      const scale=THREE.MathUtils.lerp(initialScale,1,j.center)
       root.current.scale.setScalar(scale*(.975+.025*u.uReveal.value))
-      root.current.rotation.set(.12+pointer.current.y*.055,-.26+pointer.current.x*.08+scroll*.045,-.21+Math.sin(clock.current*.12)*.012)
+      root.current.rotation.set((.12+pointer.current.y*.055)*(1-j.center),(-.26+pointer.current.x*.08)*(1-j.center),(-.21+Math.sin(clock.current*.12)*.012)*(1-j.center))
     }
-    camera.position.x=pointer.current.x*.035;camera.position.y=pointer.current.y*.025
+    camera.position.set(j.x+pointer.current.x*.035*(1-j.center),j.y+pointer.current.y*.025*(1-j.center),j.z)
   })
   return <group ref={root}>
     <mesh geometry={resources.membrane} material={resources.membraneMaterial} frustumCulled={false} renderOrder={1}/>

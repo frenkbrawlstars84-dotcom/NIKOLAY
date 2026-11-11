@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import BlackHole from './BlackHole'
+import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import { ARRIVAL_TIME, introJourney } from './introJourney'
 import { spiralGalaxy } from './galaxyGeometry'
@@ -109,5 +110,5 @@ export default function PortalScene(props:Props) {
   const [software,setSoftware]=useState(false)
   const low=software||innerWidth<=700||navigator.hardwareConcurrency<=4
   useEffect(()=>{const change=()=>setVisible(!document.hidden);document.addEventListener('visibilitychange',change);return()=>document.removeEventListener('visibilitychange',change)},[])
-  return <Canvas onCreated={({gl})=>{const context=gl.getContext(),debug=context.getExtension('WEBGL_debug_renderer_info');setSoftware(/swiftshader|llvmpipe|softpipe|software/i.test(String(context.getParameter(debug?debug.UNMASKED_RENDERER_WEBGL:context.RENDERER))))}} frameloop={visible?'always':'demand'} camera={{position:[0,0,19],fov:42,near:.1,far:260}} dpr={[1,low?1:Math.min(devicePixelRatio,1.25)]} gl={{antialias:true,alpha:true,powerPreference:'high-performance'}}><Flight {...props} low={low} simple={software||navigator.hardwareConcurrency<=2}/></Canvas>
+  return <Canvas onCreated={({gl})=>{const context=gl.getContext(),debug=context.getExtension('WEBGL_debug_renderer_info');setSoftware(/swiftshader|llvmpipe|softpipe|software/i.test(String(context.getParameter(debug?debug.UNMASKED_RENDERER_WEBGL:context.RENDERER))))}} frameloop={visible?'always':'demand'} camera={{position:[0,0,19],fov:42,near:.1,far:260}} dpr={[1,low?1:Math.min(devicePixelRatio,1.25)]} gl={{antialias:true,alpha:true,powerPreference:'high-performance'}}><AdaptiveQuality low={low} active={visible}><Flight {...props} low={low} simple={false}/></AdaptiveQuality></Canvas>
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { createChromeKnot, createGlassCrystal } from './sculptureGeometry'
@@ -36,10 +36,13 @@ function useSculpturePose(paused: boolean, reduced: boolean) {
 }
 export function ChromeKnot(props: Props) {
   const group=useRef<THREE.Group>(null),pose=useSculpturePose(props.paused,props.reduced)
+  const fresh=useRef(true)
+  useLayoutEffect(()=>{fresh.current=true},[props.paused,props.reduced])
   const geometry=useMemo(()=>createChromeKnot(props.low),[props.low])
   useEffect(()=>()=>geometry.dispose(),[geometry])
   useFrame((_,delta)=>{
-    const p=pose.current,dt=Math.min(delta,.05)
+    const p=pose.current,dt=fresh.current?0:Math.max(0,delta)
+    fresh.current=false
     if(!props.paused&&!props.reduced)p.time+=dt
     if(group.current){
       const damping=props.reduced?1:1-Math.exp(-dt*7)
@@ -52,13 +55,16 @@ export function ChromeKnot(props: Props) {
 }
 export function GlassPolyhedron(props: Props) {
   const group=useRef<THREE.Group>(null),pose=useSculpturePose(props.paused,props.reduced)
+  const fresh=useRef(true)
+  useLayoutEffect(()=>{fresh.current=true},[props.paused,props.reduced])
   const geometry=useMemo(()=>createGlassCrystal(props.low),[props.low])
   const edges=useMemo(()=>new THREE.EdgesGeometry(geometry,28),[geometry])
   const opticalCore=useMemo(()=>{const base=new THREE.OctahedronGeometry(.55);const lines=new THREE.EdgesGeometry(base);base.dispose();return lines},[])
   useEffect(()=>()=>{geometry.dispose();edges.dispose()},[geometry,edges])
   useEffect(()=>()=>opticalCore.dispose(),[opticalCore])
   useFrame((_,delta)=>{
-    const p=pose.current,dt=Math.min(delta,.05)
+    const p=pose.current,dt=fresh.current?0:Math.max(0,delta)
+    fresh.current=false
     if(!props.paused&&!props.reduced)p.time+=dt
     if(group.current){
       const damping=props.reduced?1:1-Math.exp(-dt*5)

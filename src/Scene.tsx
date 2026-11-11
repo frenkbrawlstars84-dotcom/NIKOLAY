@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { Canvas } from '@react-three/fiber'
 import SceneFallback from './SceneFallback'
+import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import HeroPortal from './HeroPortal'
 import type { PortalFrame } from './HeroPortal'
 import useSceneBudget from './useSceneBudget'
 
-type SceneProps = { reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
-export default function Scene({ reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
+type SceneProps = { progress:RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
+export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
   const [supported] = useState(() => {
     try {
       const gl = document.createElement('canvas').getContext('webgl2')
@@ -51,5 +52,5 @@ export default function Scene({ reduced, paused, anchor, onReady, onUnavailable 
     aria-label="Объёмный энергетический портал с движущимися серебристыми потоками"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView || !ownsFrame ? 'demand' : 'always'}
     gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><HeroPortal reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} /></Canvas> : <SceneFallback />}</div>
+  ><AdaptiveQuality low={low} active={!reduced&&!paused&&visible&&inView&&ownsFrame}><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><HeroPortal progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} /></AdaptiveQuality></Canvas> : <SceneFallback />}</div>
 }

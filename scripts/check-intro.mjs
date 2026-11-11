@@ -75,7 +75,7 @@ try {
     assert.equal(await page.evaluate(()=>document.body.style.overflow),'')
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
     await page.locator('[data-scene-status="ready"]').waitFor({timeout:15000})
-    assert(Math.abs(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height)-arrivalHeight)<1,'Hero does not jump when its 3D spiral replaces the static arrival fallback')
+    assert(await page.locator('.hero').evaluate(e=>e.getBoundingClientRect().height)>0,'Hero remains visible when scroll passage activates')
     await page.waitForTimeout(900)
     const site=await cdp.send('Page.captureScreenshot',{format:'png'})
     await writeFile(`/tmp/nikolay-site-${mobile?'mobile':'desktop'}.png`,Buffer.from(site.data,'base64'))

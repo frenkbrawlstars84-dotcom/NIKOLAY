@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { projects } from './projects'
 import type { Project } from './projects'
+import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import StudioLighting from './StudioLighting'
 
@@ -45,7 +46,7 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
   useEffect(()=>()=>{resources.cover.dispose();resources.frame.dispose();resources.screen.dispose();resources.body.dispose();resources.face.dispose()},[resources])
   useFrame((_,delta)=>{
     if(!group.current)return
-    const offset=index-props.position.get(),distance=Math.abs(offset),dt=Math.min(delta,.05)
+    const offset=index-props.position.get(),distance=Math.abs(offset),dt=Math.max(0,delta)
     const visible=props.reduced?Math.round(props.position.get())===index:distance<2.05
     group.current.visible=visible
     if(!visible)return
@@ -77,7 +78,7 @@ function ScreenWorld(props: ScreenSceneProps) {
   },[camera,size.width,size.height,invalidate])
   useEffect(()=>props.position.on('change',()=>{if(props.present)invalidate()}),[props.position,props.present,invalidate])
   useFrame((_,delta)=>{
-    const p=props.position.get(),dt=Math.min(delta,.05)
+    const p=props.position.get(),dt=Math.max(0,delta)
     camera.position.x=props.reduced?0:THREE.MathUtils.damp(camera.position.x,Math.sin(p*Math.PI*.65)*.3,6,dt)
     camera.position.y=props.reduced?.05:THREE.MathUtils.damp(camera.position.y,.05+Math.sin(p*Math.PI)*.08,6,dt)
     camera.lookAt(0,0,-.2)
@@ -86,6 +87,6 @@ function ScreenWorld(props: ScreenSceneProps) {
 }
 export default function ProjectScreenScene(props: ScreenSceneProps) {
   return <Canvas camera={{position:[0,0,7],fov:40,near:.1,far:40}} dpr={props.low?[1,1.25]:[1,1.5]} frameloop={props.paused||props.reduced?'demand':'always'} gl={{alpha:true,antialias:true,powerPreference:'high-performance'}} aria-label="Объёмные экраны демонстрационных проектов AURA BEAUTY и NEXORA DIGITAL">
-    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><ScreenWorld {...props}/>
+    <AdaptiveQuality low={props.low} active={!props.paused&&!props.reduced}><CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><ScreenWorld {...props}/></AdaptiveQuality>
   </Canvas>
 }

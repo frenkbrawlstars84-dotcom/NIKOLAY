@@ -1,0 +1,93 @@
+{
+  "tag": "ultimate",
+  "renderer": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "gpuTimers": false
+  },
+  "hero": {
+    "durationMs": 3601.199999999255,
+    "frames": 52,
+    "fps": 14.439631234036087,
+    "raf": 52,
+    "medianMs": 65.40000000037253,
+    "p95Ms": 122.1000000005588,
+    "longTasks": [
+      54,
+      70,
+      76,
+      68,
+      76,
+      66,
+      51,
+      54,
+      59,
+      82,
+      55,
+      55,
+      67,
+      50,
+      62,
+      76,
+      65,
+      78,
+      64,
+      89,
+      81,
+      94,
+      58,
+      70,
+      67,
+      67,
+      72,
+      79,
+      99,
+      85,
+      66,
+      52,
+      121,
+      101,
+      200,
+      169
+    ],
+    "scriptMs": 76.9970000000002,
+    "layoutMs": 0,
+    "taskMs": 3780.2419999999993
+  },
+  "cube": {
+    "durationMs": 3515.5,
+    "frames": 88,
+    "fps": 25.032001137818234,
+    "raf": 88,
+    "medianMs": 35,
+    "p95Ms": 54.09999999962747,
+    "longTasks": [
+      50,
+      53,
+      51,
+      51,
+      50,
+      56
+    ],
+    "scriptMs": 63.29600000000002,
+    "layoutMs": 0,
+    "taskMs": 3000.838999999999
+  },
+  "errors": [],
+  "reportPath": "/tmp/nikolay-profile-ultimate.json",
+  "isolatedHeroFinal": {
+    "desktop": {
+      "medianFrameMs": 32,
+      "drawCalls": 4,
+      "triangles": 14080,
+      "particles": 720
+    },
+    "mobileViewport": {
+      "medianFrameMs": 16.7,
+      "drawCalls": 4,
+      "triangles": 5680,
+      "particles": 240
+    },
+    "renderer": "SwiftShader software WebGL",
+    "note": "Separate run from profile window, no physical GPU claim"
+  }
+}

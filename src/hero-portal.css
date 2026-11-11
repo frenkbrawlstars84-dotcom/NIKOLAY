@@ -23,3 +23,21 @@
 @media(max-width:680px){.experience-pin .hero-visual{min-height:285px;max-height:320px}.experience-pin .hero-bottom .hero-description{font-size:13px;line-height:1.8;margin-bottom:23px;max-width:340px}.experience-pin .hero-composition{gap:22px}.hero-actions .button{padding-inline:18px}.visual-coordinate{font-size:5px;left:4px;right:4px;letter-spacing:1px}}
 @media(max-width:374px){.experience-pin .hero-visual{min-height:255px}.experience-pin .hero-bottom .hero-description{font-size:12px}.hero-actions{gap:14px}}
 @media(prefers-reduced-motion:reduce){.scene-host,.hero-portal-placeholder,.hero-actions a,.hero-actions svg{transition:none}.hero-actions a:hover svg{transform:none}}
+
+/* One reversible camera passage; the black hole remains exclusive to the intro. */
+.journey-enabled .experience-track{height:225svh}
+.journey-enabled .experience-pin{position:sticky;top:0;height:100svh}
+.journey-enabled .experience-pin .hero{height:100%;min-height:0}
+.journey-enabled #projects{margin-top:-85svh;position:relative;z-index:3;opacity:var(--projects-arrival,0);transform:translateY(calc((1 - var(--projects-arrival,0))*45px))}
+@media(max-width:900px){.journey-enabled .experience-track{height:195svh}}
+@media(prefers-reduced-motion:reduce){.journey-enabled .experience-track{height:auto}.journey-enabled .experience-pin{position:relative;height:auto}.journey-enabled #projects{margin-top:0;opacity:1;transform:none}}
+.journey-enabled #projects{pointer-events:var(--projects-pointer,none)}
+@media(max-width:900px){
+ .journey-enabled .hero-composition{min-height:0;gap:12px;padding-block:14px 4px}
+ .journey-enabled .hero-visual{min-height:170px;max-height:290px}
+ .journey-enabled .hero-bottom{margin-top:16px}
+ .journey-enabled .hero-bottom .hero-description{margin-bottom:18px}
+ .journey-enabled .hero-foot{flex-shrink:0}
+}
+.journey-enabled .experience-pin .hero{height:calc(100svh - 100px)}
+@media(max-width:900px){.journey-enabled .experience-pin .hero{height:calc(100svh - 78px)}}
