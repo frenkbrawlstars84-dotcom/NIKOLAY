@@ -4,6 +4,7 @@ import { writeFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
 let server
 const browser = await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || '/usr/bin/chromium',args:['--enable-unsafe-swiftshader']})
+const metrics=[]
 const url=process.env.INTRO_TEST_URL || 'http://127.0.0.1:5177'
 try {
   if(!process.env.INTRO_TEST_URL) {
@@ -22,7 +23,23 @@ try {
     const page=await context.newPage(),errors=[]
     page.on('pageerror',e=>errors.push(e.message))
     await page.addInitScript(()=>{
-      window.__portalFrames=[]
+      window.__portalFrameTimes=[]
+      const clear=WebGL2RenderingContext.prototype.clear
+      WebGL2RenderingContext.prototype.clear=function(...args){if(this.canvas.closest('.portal-canvas')&&!this.getParameter(this.FRAMEBUFFER_BINDING))window.__portalFrameTimes.push([document.querySelector('.cosmic-intro')?.dataset.introStage,performance.now()]);return clear.apply(this,args)}
+      window.__portalFrames=[];window.__stages=[]
+      window.__flightPixels=0;window.__flightSamples=0;window.__parallelHeavy=false
+      const draw=WebGL2RenderingContext.prototype.drawArrays
+      WebGL2RenderingContext.prototype.drawArrays=function(...args){
+        const result=draw.apply(this,args)
+        if(this.canvas.closest('.portal-canvas')&&args[0]===this.POINTS&&document.querySelector('[data-intro-stage="galaxies"]')&&window.__flightSamples++<18){
+          const width=this.drawingBufferWidth,pixels=new Uint8Array(width*4)
+          this.readPixels(0,Math.floor(this.drawingBufferHeight*.5),width,1,this.RGBA,this.UNSIGNED_BYTE,pixels)
+          const lit=pixels.filter((v,i)=>i%4!==3&&v>12).length
+          window.__flightPixels=Math.max(window.__flightPixels,lit)
+        }
+        return result
+      }
+      new MutationObserver(()=>{if(document.querySelector('.cosmic-intro')&&document.querySelector('[data-scene-running="true"]'))window.__parallelHeavy=true;const stage=document.querySelector('.cosmic-intro')?.dataset.introStage;if(stage&&window.__stages.at(-1)!==stage)window.__stages.push(stage)}).observe(document,{subtree:true,attributes:true,childList:true,attributeFilter:['data-intro-stage']})
       window.__portalTargets=[]
       const image=WebGL2RenderingContext.prototype.texImage2D
       WebGL2RenderingContext.prototype.texImage2D=function(...args){if(typeof args[3]==='number'&&typeof args[4]==='number')window.__portalTargets.push([args[3],args[4]]);return image.apply(this,args)}
@@ -41,43 +58,59 @@ try {
     const cdp=await context.newCDPSession(page)
     const shot=await cdp.send('Page.captureScreenshot',{format:'png'})
     await writeFile(`/tmp/nikolay-intro-${mobile?'mobile':'desktop'}.png`,Buffer.from(shot.data,'base64'))
-    await page.locator('.cosmic-intro').waitFor({state:'detached',timeout:8000})
+    await page.locator('[data-intro-stage="galaxies"]').waitFor({timeout:8000})
+    await page.waitForTimeout(650)
+    const galaxyShot=await cdp.send('Page.captureScreenshot',{format:'png'})
+    await writeFile(`/tmp/nikolay-flight-${mobile?'mobile':'desktop'}.png`,Buffer.from(galaxyShot.data,'base64'))
+    await page.locator('.site-root').waitFor()
+    const arrivalHeight=await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height)
+    await page.locator('.cosmic-intro').waitFor({state:'detached',timeout:11000})
+    assert((await page.evaluate(()=>window.__flightPixels))>10,'Galaxy flight renders real illuminated pixels, not an empty canvas')
+    assert.deepEqual(await page.evaluate(()=>window.__stages),['black-hole','plunge','galaxies','arrival'],'Full one-way sequence plays once')
+    assert.equal(await page.evaluate(()=>window.__parallelHeavy),false,'Main heavy scenes stay deferred until intro finishes')
     const duration=await page.evaluate(()=>window.__released)
-    assert(duration<8000,'Intro always releases site')
+    assert(duration<10000,'Intro always releases site')
     assert(await page.locator('h1').isVisible())
     assert.equal(await page.locator('.site-root').evaluate(e=>e.inert),false)
     assert.equal(await page.evaluate(()=>document.body.style.overflow),'')
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+    await page.locator('[data-scene-status="ready"]').waitFor({timeout:15000})
+    assert(Math.abs(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height)-arrivalHeight)<1,'Hero does not jump when its 3D spiral replaces the static arrival fallback')
     await page.waitForTimeout(900)
     const site=await cdp.send('Page.captureScreenshot',{format:'png'})
     await writeFile(`/tmp/nikolay-site-${mobile?'mobile':'desktop'}.png`,Buffer.from(site.data,'base64'))
     const frames=await page.evaluate(()=>window.__portalFrames)
     assert(frames.length>3,'Multiple real camera positions rendered')
     assert(Math.max(...frames.map(f=>f[3]))-Math.min(...frames.map(f=>f[3]))>10,'Camera moves through world space')
+    const frameTimes=await page.evaluate(()=>window.__portalFrameTimes)
     await page.reload()
     assert.equal(await page.locator('.cosmic-intro').count(),0,'Only once per session')
+    assert.equal(await page.locator('.ton-caption,.horizon-shade,.passage-copy').count(),0)
     assert.deepEqual(errors,[])
+    metrics.push({device:mobile?'mobile':'desktop',duration,dimensions,frameTimes})
     console.log('PASS',mobile?'mobile':'desktop',{duration,dimensions})
     await context.close()
   }
-  for(const mode of ['skip','escape','reduced','no-webgl','storage','module','context-lost','timeout','reduced-change','shader','hash']) {
+  for(const mode of ['skip','escape','reduced','no-webgl','storage','module','context-lost','timeout','reduced-change','shader','hash','reload-early']) {
     const context=await browser.newContext({reducedMotion:mode==='reduced'?'reduce':'no-preference'})
     if(mode==='module') {await context.route('**/src/PortalScene.tsx',r=>r.abort());await context.route('**/assets/PortalScene-*.js',r=>r.abort())}
     if(mode==='timeout') {await context.route('**/src/PortalScene.tsx',()=>{});await context.route('**/assets/PortalScene-*.js',()=>{})}
     const page=await context.newPage()
     if(mode==='no-webgl') await page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type.startsWith('webgl')?null:original.call(this,type,...args)}})
-    if(mode==='shader') await page.addInitScript(()=>{const original=WebGL2RenderingContext.prototype.shaderSource;WebGL2RenderingContext.prototype.shaderSource=function(shader,source){return original.call(this,shader,source.includes('TON_RAY_SCENE')?'INVALID_SHADER':source)}})
+    if(mode==='shader') await page.addInitScript(()=>{const original=WebGL2RenderingContext.prototype.shaderSource;WebGL2RenderingContext.prototype.shaderSource=function(shader,source){return original.call(this,shader,source.includes('PORTAL_BLACK_HOLE')?'INVALID_SHADER':source)}})
     if(mode==='storage') await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw new Error('Disabled')};Storage.prototype.setItem=()=>{throw new Error('Disabled')}})
     await page.goto(mode==='hash'?`${url}/#contact`:url,{waitUntil:'domcontentloaded'})
-    if(mode==='skip'||mode==='storage') await page.getByRole('button',{name:'Пропустить интро'}).click()
+    if(mode==='reload-early'){await page.locator('.cosmic-intro').waitFor();await page.reload()}
+    if(mode==='skip'||mode==='storage') await page.getByRole('button',{name:'Пропустить'}).click()
     if(mode==='context-lost') {await page.locator('[data-intro-state="playing"]').waitFor();await page.locator('.portal-canvas canvas').evaluate(e=>e.dispatchEvent(new Event('webglcontextlost',{cancelable:true})))}
     if(mode==='reduced-change') {await page.locator('.portal-canvas canvas').waitFor();await page.emulateMedia({reducedMotion:'reduce'})}
     if(mode==='escape') await page.keyboard.press('Escape')
-    await page.locator('.cosmic-intro').waitFor({state:'detached',timeout:8000})
+    await page.locator('.cosmic-intro').waitFor({state:'detached',timeout:11000})
     assert(await page.locator('h1').isVisible())
     assert.equal(await page.locator('.site-root').evaluate(e=>e.inert),false)
     if(mode==='reduced') assert.equal(await page.locator('.portal-canvas canvas').count(),0)
     console.log('PASS',mode)
     await context.close()
   }
+  await writeFile('/tmp/nikolay-intro-metrics.json',JSON.stringify(metrics,null,2))
 } finally {await browser.close();server?.kill()}

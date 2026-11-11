@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { AccentKind } from './AccentObject'
@@ -41,7 +41,7 @@ function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low
   useEffect(() => () => rig.dispose(), [rig])
   useFrame((_, delta) => {
     if (paused || reduced) return
-    const dt = freshFrame.current ? 0 : Math.min(delta, .1)
+    const dt = freshFrame.current || !Number.isFinite(delta) ? 0 : Math.max(0,delta)
     freshFrame.current=false
     clock.current += dt
     controller.advance(dt)
@@ -52,19 +52,25 @@ function Rubik({ paused, reduced, low }: Pick<Props, 'paused' | 'reduced' | 'low
     smoothPointer.current.y = THREE.MathUtils.damp(smoothPointer.current.y, pointer.current.y, 4, dt)
     if (group.current) {
       group.current.rotation.x = .4 + smoothPointer.current.y * .1 + Math.sin(clock.current * .17) * .025
-      group.current.rotation.y = -.55 + clock.current * .065 + smoothPointer.current.x * .16
+      group.current.rotation.y = -.55 + clock.current * .0975 + smoothPointer.current.x * .16
     }
   })
   return <group ref={group} rotation={[.4, -.55, .02]}><primitive object={rig.root} dispose={null}/></group>
 }
 export default function AccentScene(props: Props) {
+  const [software,setSoftware]=useState(false)
+  const low=props.low||(software&&props.kind==='cube')
   const supported = useMemo(() => {
     try { const gl = document.createElement('canvas').getContext('webgl2'); if (!gl) return false; gl.getExtension('WEBGL_lose_context')?.loseContext(); return true } catch { return false }
   }, [])
   useEffect(() => { if (!supported) props.onUnavailable() }, [supported, props.onUnavailable])
   if (!supported) return null
-  return <Canvas camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop={props.paused || props.reduced ? 'demand' : 'always'} dpr={props.low ? [1, 1.25] : [1, 1.5]} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : props.kind === 'glass' ? 'Стеклянный многогранник. Перетаскивайте мышью или используйте стрелки для вращения' : 'Хромированный узел. Перетаскивайте мышью или используйте стрелки для вращения'}>
-    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced}/><StudioLighting low={props.low} monochrome={true}/>
-    {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={props.low}/> : props.kind === 'glass' ? <GlassPolyhedron paused={props.paused} reduced={props.reduced} low={props.low}/> : <ChromeKnot paused={props.paused} reduced={props.reduced} low={props.low}/>}
+  return <Canvas onCreated={({gl})=>{
+    const context=gl.getContext(),debug=context.getExtension('WEBGL_debug_renderer_info')
+    const renderer=String(context.getParameter(debug?debug.UNMASKED_RENDERER_WEBGL:context.RENDERER))
+    setSoftware(/swiftshader|llvmpipe|softpipe|software/i.test(renderer))
+  }} camera={{ position: [0, props.kind === 'cube' ? 0 : .1, props.kind === 'cube' ? 7.8 : 6.2], fov: 38 }} frameloop={props.paused || props.reduced ? 'demand' : 'always'} dpr={low ? 1 : [1, 1.5]} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} aria-label={props.kind === 'cube' ? 'Вращающийся 3D-кубик Рубика' : props.kind === 'glass' ? 'Стеклянный многогранник. Перетаскивайте мышью или используйте стрелки для вращения' : 'Хромированный узел. Перетаскивайте мышью или используйте стрелки для вращения'}>
+    <CanvasHealth onReady={props.onReady} onUnavailable={props.onUnavailable}/><MotionDriver paused={props.paused} reduced={props.reduced}/><StudioLighting low={low} monochrome={true}/>
+    {props.kind === 'cube' ? <Rubik paused={props.paused} reduced={props.reduced} low={low}/> : props.kind === 'glass' ? <GlassPolyhedron paused={props.paused} reduced={props.reduced} low={low}/> : <ChromeKnot paused={props.paused} reduced={props.reduced} low={low}/>}
   </Canvas>
 }

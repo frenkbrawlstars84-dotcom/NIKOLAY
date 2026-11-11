@@ -28,9 +28,9 @@ try{
     const result=await page.evaluate(()=>{const p=window.__profile,end=performance.now();p.selector=null;const gaps=p.frames.slice(1).map((v,i)=>v-p.frames[i]).sort((a,b)=>a-b);return{durationMs:end-p.start,frames:p.frames.length,fps:p.frames.length*1000/(end-p.start),raf:p.raf.length,medianMs:gaps[Math.floor(gaps.length*.5)],p95Ms:gaps[Math.floor(gaps.length*.95)],longTasks:p.longTasks}})
     const after=await metrics();return{...result,scriptMs:(after.ScriptDuration-before.ScriptDuration)*1000,layoutMs:(after.LayoutDuration-before.LayoutDuration)*1000,taskMs:(after.TaskDuration-before.TaskDuration)*1000}
   }
-  await page.evaluate(()=>{const r=document.querySelector('.experience-track').getBoundingClientRect();scrollTo(0,scrollY+r.top+(r.height-innerHeight)*.64)});await page.waitForTimeout(1200)
-  const ton=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-ton-${tag}.png`)})
+  await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(1200)
+  const hero=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-hero-${tag}.png`)})
   await page.locator('.accent-cube').scrollIntoViewIfNeeded();await page.locator('.accent-cube[data-accent-status="ready"]').waitFor({timeout:20000});await page.waitForTimeout(1000)
   const cube=await sample('.accent-cube');await page.locator('.accent-cube').screenshot({path:join(output,`nikolay-cube-${tag}.png`)})
-  const report={tag,renderer,ton,cube,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
+  const report={tag,renderer,hero,cube,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
 }finally{await browser.close()}

@@ -37,8 +37,8 @@ export class RubikController {
   completedTurns = 0
   idle = 0
   sequenceIndex = 0
-  readonly duration = 1.8
-  readonly pause = 6.5
+  readonly duration = 1.4
+  readonly pause = 4.8
   request(move: Move = { axis: 'y', layer: 1, direction: 1 }) {
     if (this.queue.length < 8) this.queue.push(move)
   }

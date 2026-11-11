@@ -1,13 +1,13 @@
-/* One persistent WebGL viewport, driven by the native scroll position. */
+/* The hero is a regular section. Its decorative spiral never drives scrolling. */
 .site-root{overflow:clip}
-.experience-track{position:relative;height:245svh}
-.experience-pin{position:sticky;top:0;height:100svh;isolation:isolate;overflow:clip;background:#090a0bf5}
+.experience-track{position:relative;height:auto}
+.experience-pin{position:relative;min-height:calc(100svh - 100px);isolation:isolate;overflow:clip;background:#090a0bf5}
 .experience-art{position:absolute;inset:0;z-index:0;pointer-events:none;clip-path:var(--intro-clip,inset(0 0 0 50%));will-change:clip-path}
-.experience-pin .hero{position:relative;z-index:2;height:100%;min-height:0;max-height:none;pointer-events:none}
+.experience-pin .hero{position:relative;z-index:2;min-height:calc(100svh - 100px);max-height:none;pointer-events:none}
 .experience-pin .hero-composition{min-height:0;padding-block:26px 20px}
 .experience-pin .hero-copy,.experience-pin .hero-foot{pointer-events:auto}
 .experience-pin .hero-visual{min-height:0;height:100%;overflow:visible}
-.experience-pin .hero-copy{padding-block:30px;will-change:clip-path}
+.experience-pin .hero-copy{padding-block:30px}
 .experience-pin .hero-foot{margin-top:0;padding-bottom:3px;background:#090a0bcc;pointer-events:auto}
 .experience-pin .hero-meta{pointer-events:auto}
 .hero h1>.fluid-line{font-family:Arial,Helvetica,sans-serif;font-style:normal;color:inherit;letter-spacing:inherit}
@@ -17,14 +17,6 @@
 .fluid-ink{position:relative}
 .fluid-sheen{position:absolute;inset:0;opacity:0;pointer-events:none;color:transparent;background:linear-gradient(110deg,transparent 32%,#fff9 48%,#d3dbe466 52%,transparent 66%);background-size:240% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .fluid-line[data-type-ready="true"] .fluid-ink{transform:none;filter:none;will-change:auto}
-.passage-guides{position:absolute;left:56px;right:56px;top:40px;z-index:4;display:flex;justify-content:space-between;align-items:center;opacity:0;font-size:7px;letter-spacing:2px;color:#b4bfce;pointer-events:none}
-.passage-guides>span{padding:8px;background:#090a0bbf}
-.passage-meter{position:absolute;right:8px;top:38px;width:130px;height:1px;background:#ffffff20}
-.passage-meter i{display:block;width:100%;height:100%;background:#cbd8eb;transform-origin:0% 50%}
-.passage-copy{position:absolute;top:36%;left:0;right:0;z-index:1;text-align:center;padding:45px 20px;clip-path:inset(100% 0 0 0);pointer-events:none;background:radial-gradient(ellipse at center,#090a0bf5 0%,#090a0b99 35%,transparent 69%)}
-.passage-copy>span{font-size:8px;letter-spacing:2.5px;color:#9dabbf}
-.passage-copy p{font-size:clamp(35px,5.4vw,82px);font-weight:400;line-height:1.08;letter-spacing:-2.7px;margin:25px 0}
-.passage-copy em{font-family:Georgia,serif;color:#c2cbd9;font-weight:400}
 .fallback-position{position:absolute;left:var(--frame-left);top:var(--frame-top);width:var(--frame-width);height:var(--frame-height)}
 .about{perspective:1400px;background:#090a0bf5}
 .about-body{transform-origin:50% 0%;transform-style:preserve-3d}
@@ -56,9 +48,8 @@
 .contact-cta{padding-inline:22px;gap:26px;transition:transform .3s,box-shadow .3s,background .3s}
 .contact-cta:hover{box-shadow:0 5px 35px #bfdbff18}
 .contact-cta:hover svg:last-child{transform:translate(3px,-3px)}.contact-cta svg{transition:transform .3s}
-@media(max-width:1050px){.passage-guides{left:32px;right:32px}.gallery-perspective{padding-right:25px}}
 @media(max-width:900px){
-  .experience-track{height:220svh}
+  .experience-track{height:auto}
   .experience-pin .hero{padding-top:18px;padding-bottom:17px;display:flex}
   .experience-pin .hero-composition{display:flex;flex-direction:column;gap:5px;padding-top:25px;padding-bottom:10px;min-height:0;align-items:stretch}
   .experience-pin .hero-copy{padding:0;flex-shrink:0;max-width:none}
@@ -68,7 +59,6 @@
   .experience-pin .hero-bottom p{margin-bottom:18px}
   .experience-pin .hero-foot{padding-top:14px;font-size:6px}
   .experience-pin .visual-coordinate{bottom:2px}
-  .passage-copy{top:38%;padding:35px 10px}
   .gallery-runway{height:200svh}
   .project-surface .project-info{padding:16px 9px 6px}
 }
@@ -83,9 +73,6 @@
   .experience-pin .hero-actions{gap:17px}
   .experience-pin .hero-foot{font-size:5px;padding-top:12px}
   .experience-pin .hero-foot button{font-size:6px}
-  .passage-guides{left:16px;right:16px;top:22px;font-size:5px;letter-spacing:1px}
-  .passage-meter{width:90px;top:30px}
-  .passage-copy{top:37%}.passage-copy p{font-size:clamp(29px,8.5vw,48px);letter-spacing:-1px}.passage-copy>span{font-size:6px;letter-spacing:1.2px}
   .gallery-runway>.gallery-layout{top:60px;gap:20px;padding-top:0}
   .gallery-perspective{padding-right:20px}
   .project-deck{height:calc(clamp(210px,31svh,285px) + 210px)}
@@ -104,7 +91,6 @@
   .experience-pin .hero{height:auto;min-height:calc(100svh - 78px);pointer-events:auto}
   .experience-pin .hero-composition{min-height:590px}
   .experience-pin .hero-visual{min-height:330px}
-  .passage-copy,.passage-guides{display:none}
   .experience-art{will-change:auto}
   .gallery-runway{height:auto}.gallery-runway>.gallery-layout{position:relative;top:auto}
 }
@@ -112,15 +98,9 @@
 .gallery-perspective{width:100%}
 @media(max-width:680px){.gallery-runway>.gallery-layout{align-items:stretch}.gallery-index{width:100%;min-width:0}}
 
-/* A failed or pending decoration must never create an empty pinned viewport. */
+/* The loading and fallback decorations use exactly the same hero geometry. */
 .scene-layer{width:100%;height:100%;pointer-events:none}
 .experience-art canvas{pointer-events:none!important}
-.site-root:not(.visual-status-ready) .experience-track{height:auto}
-.site-root:not(.visual-status-ready) .experience-pin{position:relative;height:auto}
-.site-root:not(.visual-status-ready) .experience-pin .hero{height:auto;min-height:calc(100svh - 78px);pointer-events:auto}
-.site-root:not(.visual-status-ready) .hero-composition{min-height:590px}
-.site-root:not(.visual-status-ready) .hero-visual{min-height:330px}
-.site-root:not(.visual-status-ready) .passage-copy,.site-root:not(.visual-status-ready) .passage-guides{display:none}
 .visual-status-fallback .hero-copy,.visual-status-fallback .hero-type,.visual-status-fallback .hero-bottom{opacity:1!important;clip-path:none!important;transform:none!important;visibility:visible!important}
 .visual-status-fallback .fluid-ink{transform:none!important;filter:none!important}
 
@@ -132,3 +112,8 @@
 .gallery-round-link{width:42px;height:42px;pointer-events:auto;touch-action:manipulation;transform:none}
 .gallery-page-controls{flex-shrink:0}
 @media(max-width:680px){.gallery-controls{flex-wrap:wrap}.gallery-open-actions{order:3;flex-basis:100%;justify-content:space-between}.gallery-project-visit{flex:1}.gallery-page-controls{margin-left:auto}}
+
+@media(max-width:1050px){.gallery-perspective{padding-right:25px}}
+.experience-pin .hero-composition{min-height:590px}
+.experience-art{will-change:auto}
+@media(max-width:900px){.experience-pin .hero{min-height:calc(100svh - 78px)}.experience-pin .hero-composition{min-height:640px}}

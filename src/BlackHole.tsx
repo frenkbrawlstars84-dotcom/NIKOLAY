@@ -5,7 +5,7 @@ import * as THREE from 'three'
 
 const fullscreenVertex = `varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`
 const rayFragment = `
-  // TON_RAY_SCENE: analytic gravitational lensing of a procedural 3D accretion disk.
+  // PORTAL_BLACK_HOLE: analytic gravitational lensing of a procedural 3D accretion disk.
   uniform vec3 uEye;
   uniform float uTime;
   uniform float uAspect;
@@ -47,12 +47,23 @@ const rayFragment = `
     float spin=uTime*.12/(r*sqrt(r))+r*.2;
     float cs=cos(spin),sn=sin(spin);
     vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
-    float clouds=fbm(orbit*r*2.6);
+    #ifdef SOFTWARE_FALLBACK
+      float clouds=noise(orbit*r*2.6);
+    #else
+      float clouds=fbm(orbit*r*2.6);
+    #endif
     // Uneven orbital filaments retain texture at close range without cloudy,
     // screen-space blur. Exposure is bounded before adding the small glow.
     vec2 flow=orbit*r;
-    float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
-    float detail=noise(orbit*r*27.);
+    #ifdef SOFTWARE_FALLBACK
+      float phase=r*43.+dot(orbit,vec2(7.,3.))+clouds*3.;
+      float footprint=fwidth(phase);
+      float filaments=.5+.5*sin(phase)*exp(-footprint*footprint*.5);
+      float detail=hash(floor(orbit*r*90.));
+    #else
+      float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
+      float detail=noise(orbit*r*27.);
+    #endif
     float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+pow(detail,6.)*.07;
     float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
@@ -117,19 +128,19 @@ const bloomFragment = `
     gl_FragColor=vec4(color+glow,uOpacity);
   }
 `
-export default function BlackHole({ progress, clock, low, onUnavailable, portal = false }: { portal?: boolean; progress: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
+export default function BlackHole({ opacity, clock, low, simple = false, onUnavailable }: { simple?: boolean; opacity: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
   const mesh = useRef<THREE.Mesh>(null)
   const { gl, camera, size, viewport } = useThree()
   const checked = useRef(false)
   const resources = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2,2)
     const target = new THREE.WebGLRenderTarget(1,1,{ depthBuffer:false, stencilBuffer:false, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter })
-    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:low?{LOW_QUALITY:1}:{}, depthTest:false, depthWrite:false, uniforms:{uPortal:{value:portal?1:0},uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
-    const composite = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:bloomFragment, defines:low?{LOW_QUALITY:1}:{}, depthTest:false,depthWrite:false,transparent:true,uniforms:{uScene:{value:target.texture},uTexel:{value:new THREE.Vector2(1,1)},uOpacity:{value:0}} })
+    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:{...(low?{LOW_QUALITY:1}:{}),...(simple?{SOFTWARE_FALLBACK:1}:{})}, depthTest:false, depthWrite:false, uniforms:{uPortal:{value:1},uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
+    const composite = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:bloomFragment, defines:{...(low?{LOW_QUALITY:1}:{}),...(simple?{SOFTWARE_FALLBACK:1}:{})}, depthTest:false,depthWrite:false,transparent:true,uniforms:{uScene:{value:target.texture},uTexel:{value:new THREE.Vector2(1,1)},uOpacity:{value:0}} })
     const scene = new THREE.Scene();scene.add(new THREE.Mesh(geometry,ray))
     const view = new THREE.OrthographicCamera(-1,1,1,-1,0,1)
     return {geometry,target,ray,composite,scene,view}
-  },[low,portal])
+  },[low,simple])
   useLayoutEffect(()=>{
     // The base scene matches the actual canvas, including on large displays.
     // Only bloom is soft; the central silhouette and gas are never upscaled.
@@ -143,12 +154,12 @@ export default function BlackHole({ progress, clock, low, onUnavailable, portal 
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
   useFrame(()=>{
-    const p=progress.current,active=portal||(p>.26&&p<.999)
+    const active=opacity.current>.001
     if(mesh.current)mesh.current.visible=active
     if(!active)return
-    resources.ray.uniforms.uEye.value.copy(camera.position);if(!portal)resources.ray.uniforms.uEye.value.z+=24
+    resources.ray.uniforms.uEye.value.copy(camera.position)
     resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
-    resources.composite.uniforms.uOpacity.value=portal?1:THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
+    resources.composite.uniforms.uOpacity.value=opacity.current
     const previous=gl.getRenderTarget()
     try{
       gl.setRenderTarget(resources.target)

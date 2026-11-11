@@ -13,8 +13,8 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
   render() { return this.state.failed ? <SceneFallback /> : this.props.children }
 }
 
-export default function SceneLayer({ progress, reduced, paused, anchor, onStatus }: {
-  progress: RefObject<number>; reduced: boolean; paused: boolean
+export default function SceneLayer({ reduced, paused, anchor, onStatus, deferred = false }: {
+  deferred?: boolean; reduced: boolean; paused: boolean
   anchor: RefObject<HTMLDivElement | null>; onStatus: (status: SceneStatus) => void
 }) {
   const [status, setStatus] = useState<SceneStatus>('loading')
@@ -28,14 +28,14 @@ export default function SceneLayer({ progress, reduced, paused, anchor, onStatus
     phase.current = 'ready'; setStatus('ready'); onStatus('ready')
   }, [onStatus])
   useEffect(() => {
-    if (status !== 'loading') return
+    if (deferred || status !== 'loading') return
     // Slow/blocked imports and a renderer that never draws cannot hold the page.
     const timeout = window.setTimeout(fail, 10_000)
     return () => clearTimeout(timeout)
-  }, [status, fail])
+  }, [status, fail, deferred])
   return <div className="scene-layer" data-scene-status={status}>
-    {status === 'fallback' ? <SceneFallback /> : <SceneBoundary onFailure={fail}>
-      <Suspense fallback={<SceneFallback />}><Scene progress={progress} reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
+    {deferred || status === 'fallback' ? <SceneFallback /> : <SceneBoundary onFailure={fail}>
+      <Suspense fallback={<SceneFallback />}><Scene reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
     </SceneBoundary>}
   </div>
 }

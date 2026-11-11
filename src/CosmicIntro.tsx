@@ -16,43 +16,43 @@ class PortalBoundary extends Component<{ children: ReactNode; onFailure: () => v
 }
 export default function CosmicIntro({ onComplete, onReveal }: { onComplete: () => void; onReveal: () => void }) {
   const [ready, setReady] = useState(false), [leaving, setLeaving] = useState(false)
+  const [exitDuration,setExitDuration]=useState(350)
+  const host=useRef<HTMLElement>(null)
   const finished = useRef(false), skip = useRef<HTMLButtonElement>(null)
-  const finish = useCallback(() => {
+  const finish = useCallback((arrival = false) => {
     if (finished.current) return
     finished.current = true
     try { sessionStorage.setItem(sessionKey, '1') } catch { /* Storage may be disabled. */ }
+    setExitDuration(arrival?1100:350)
     onReveal()
     setLeaving(true)
   }, [onReveal])
+  const arrive=useCallback(()=>finish(true),[finish])
   const sceneReady = useCallback(() => setReady(true), [])
   useEffect(() => {
+    try { sessionStorage.setItem(sessionKey, '1') } catch { /* Reload still works without storage. */ }
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    const timeout = window.setTimeout(finish, 4550)
+    const timeout = window.setTimeout(()=>finish(), 6650)
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') finish() }
     window.addEventListener('keydown', escape)
     return () => { document.body.style.overflow = previous; clearTimeout(timeout); window.removeEventListener('keydown', escape) }
   }, [finish])
-  useEffect(() => {
-    if (!ready) return
-    const timeout = window.setTimeout(finish, 3550)
-    return () => clearTimeout(timeout)
-  }, [ready, finish])
   useEffect(() => {
     if (!leaving) return
     const timeout = window.setTimeout(() => {
       const restoreFocus = document.activeElement === skip.current
       onComplete()
       if (restoreFocus) requestAnimationFrame(() => document.querySelector<HTMLAnchorElement>('.brand')?.focus())
-    }, 450)
+    }, exitDuration)
     return () => clearTimeout(timeout)
-  }, [leaving, onComplete])
-  return <section className={`cosmic-intro ${ready?'is-ready':''} ${leaving?'is-leaving':''}`} aria-label="Космическое вступление" data-intro-state={leaving?'leaving':ready?'playing':'loading'}>
-    <div className="portal-placeholder" aria-hidden="true"><div/></div>
-    <div className="portal-canvas" aria-hidden="true"><PortalBoundary onFailure={finish}><Suspense fallback={null}><PortalScene onReady={sceneReady} onUnavailable={finish}/></Suspense></PortalBoundary></div>
+  }, [leaving, onComplete, exitDuration])
+  return <section ref={host} style={{transitionDuration:`${exitDuration}ms`}} className={`cosmic-intro ${ready?'is-ready':''} ${leaving?'is-leaving':''}`} aria-label="Космическое вступление" data-intro-stage="black-hole" data-intro-state={leaving?'leaving':ready?'playing':'loading'}>
+    {!ready&&<div className="portal-placeholder" aria-hidden="true"><div/></div>}
+    <div className="portal-canvas" aria-hidden="true"><PortalBoundary onFailure={()=>finish()}><Suspense fallback={null}><PortalScene onReady={sceneReady} onUnavailable={()=>finish()} onArrival={arrive} host={host}/></Suspense></PortalBoundary></div>
     <div className="portal-vignette" aria-hidden="true"/>
     <div className="portal-top"><span>NIKOLAY <i><Asterisk size={18}/></i></span><span>ПУТЕШЕСТВИЕ НАЧИНАЕТСЯ</span></div>
     <div className="portal-caption"><span>ПО ДРУГУЮ СТОРОНУ ПРИВЫЧНОГО</span><p>У каждой идеи —<br/><em>своя вселенная.</em></p></div>
-    <div className="portal-bottom"><span>01 / ВХОД В ЦИФРОВОЕ ПРОСТРАНСТВО</span><button ref={skip} onClick={finish}>Пропустить интро <ArrowUpRight size={15} aria-hidden="true"/></button></div>
+    <div className="portal-bottom"><span>01 / ВХОД В ЦИФРОВОЕ ПРОСТРАНСТВО</span><button ref={skip} onClick={()=>finish()}>Пропустить <ArrowUpRight size={15} aria-hidden="true"/></button></div>
   </section>
 }

@@ -9,10 +9,10 @@ export function createRubikRig(cells: Cubie[], low: boolean) {
   const root = new THREE.Group(), stationary = new THREE.Group(), pivot = new THREE.Group()
   root.name = 'rubik-rig'; stationary.name = 'rubik-stationary'; pivot.name = 'rubik-layer'
   root.add(stationary, pivot)
-  const body = new RoundedBoxGeometry(.97, .97, .97, low ? 1 : 2, .055)
-  const sticker = new RoundedBoxGeometry(.915, .915, .055, low ? 1 : 2, .022)
-  const bodyMaterial = new THREE.MeshStandardMaterial({ color: '#080808', metalness: .15, roughness: .3 })
-  const stickerMaterial = new THREE.MeshStandardMaterial({ color: '#f5f5f5', metalness: .05, roughness: .22 })
+  const body = low ? new THREE.BoxGeometry(.97, .97, .97) : new RoundedBoxGeometry(.97, .97, .97, 2, .055)
+  const sticker = low ? new THREE.PlaneGeometry(.915, .915) : new RoundedBoxGeometry(.915, .915, .055, 2, .022)
+  const bodyMaterial = low ? new THREE.MeshLambertMaterial({ color: '#080808' }) : new THREE.MeshStandardMaterial({ color: '#080808', metalness: .15, roughness: .3 })
+  const stickerMaterial = low ? new THREE.MeshLambertMaterial({ color: '#f5f5f5' }) : new THREE.MeshStandardMaterial({ color: '#f5f5f5', metalness: .05, roughness: .22 })
   const bodies = [new THREE.InstancedMesh(body, bodyMaterial, 26), new THREE.InstancedMesh(body, bodyMaterial, 9)]
   const stickers = [new THREE.InstancedMesh(sticker, stickerMaterial, 54), new THREE.InstancedMesh(sticker, stickerMaterial, 27)]
   for (let i = 0; i < 2; i++) {

@@ -1,137 +1,391 @@
 {
-  "method": "1440x1000, DPR=1, approximately 3.5 seconds per scene; identical preview/browser configuration",
-  "before": {
-    "tag": "before",
-    "renderer": {
-      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-      "gpuTimers": false
+  "date": "2026-11-11",
+  "method": "Chromium / SwiftShader software WebGL; desktop 1440x1000 DPR 1; 3.5s main-scene windows. Intro desktop 1440x900 and mobile 390x844. No physical GPU or phone benchmark.",
+  "current": {
+    "before_software_fallback": {
+      "tag": "cosmic-flow",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gpuTimers": false
+      },
+      "hero": {
+        "durationMs": 3522.7999999998137,
+        "frames": 161,
+        "fps": 45.702282275465116,
+        "raf": 161,
+        "medianMs": 20.399999999906868,
+        "p95Ms": 32.09999999962747,
+        "longTasks": [],
+        "scriptMs": 73.94800000000001,
+        "layoutMs": 0,
+        "taskMs": 3558.37
+      },
+      "cube": {
+        "durationMs": 3640.7000000001863,
+        "frames": 23,
+        "fps": 6.317466421292285,
+        "raf": 23,
+        "medianMs": 159.10000000009313,
+        "p95Ms": 186.79999999981374,
+        "longTasks": [
+          115,
+          168,
+          160,
+          158,
+          144,
+          164,
+          120,
+          141,
+          135,
+          167,
+          143,
+          150,
+          133,
+          123,
+          151,
+          159,
+          173,
+          159,
+          159,
+          167,
+          136,
+          185
+        ],
+        "scriptMs": 32.26399999999996,
+        "layoutMs": 0,
+        "taskMs": 3712.0379999999996
+      },
+      "errors": [],
+      "reportPath": "/tmp/nikolay-profile-cosmic-flow.json"
     },
-    "ton": {
-      "durationMs": 3653,
-      "frames": 15,
-      "fps": 4.106214070626882,
-      "raf": 15,
-      "medianMs": 242.7999999988824,
-      "p95Ms": 277,
-      "longTasks": [
-        239,
-        234,
-        250,
-        230,
-        243,
-        243,
-        255,
-        276,
-        248,
-        228,
-        240,
-        241,
-        230,
-        251
-      ],
-      "scriptMs": 23.733000000000004,
-      "layoutMs": 0,
-      "taskMs": 4157.685
+    "lambert_only": {
+      "tag": "cosmic-flow-low",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gpuTimers": false
+      },
+      "hero": {
+        "durationMs": 3522.399999999907,
+        "frames": 147,
+        "fps": 41.73290937996931,
+        "raf": 147,
+        "medianMs": 21.699999999720603,
+        "p95Ms": 34.60000000009313,
+        "longTasks": [
+          53
+        ],
+        "scriptMs": 63.715000000000074,
+        "layoutMs": 0,
+        "taskMs": 3537.9159999999993
+      },
+      "cube": {
+        "durationMs": 3568.399999999907,
+        "frames": 50,
+        "fps": 14.011882076000814,
+        "raf": 50,
+        "medianMs": 68.70000000018626,
+        "p95Ms": 99.3000000002794,
+        "longTasks": [
+          70,
+          67,
+          67,
+          68,
+          53,
+          59,
+          53,
+          50,
+          70,
+          61,
+          50,
+          61,
+          52,
+          63,
+          67,
+          84,
+          56,
+          62,
+          68,
+          68,
+          68,
+          71,
+          59,
+          61,
+          61,
+          55,
+          65,
+          95,
+          55,
+          79,
+          78,
+          88,
+          67,
+          89,
+          51,
+          69,
+          77,
+          71,
+          60,
+          77,
+          64,
+          69,
+          70,
+          62,
+          74
+        ],
+        "scriptMs": 45.428999999999945,
+        "layoutMs": 0,
+        "taskMs": 3254.4489999999973
+      },
+      "errors": [],
+      "reportPath": "/tmp/nikolay-profile-cosmic-flow-low.json"
     },
-    "cube": {
-      "durationMs": 3597.699999999255,
-      "frames": 20,
-      "fps": 5.559107207383645,
-      "raf": 20,
-      "medianMs": 181,
-      "p95Ms": 194.5,
-      "longTasks": [
-        176,
-        185,
-        160,
-        179,
-        188,
-        187,
-        184,
-        181,
-        159,
-        180,
-        176,
-        173,
-        158,
-        178,
-        182,
-        183,
-        168,
-        193,
-        191
-      ],
-      "scriptMs": 20.333000000000155,
-      "layoutMs": 0,
-      "taskMs": 3958.822999999999
-    },
-    "errors": []
+    "optimized": {
+      "tag": "cosmic-flow-final",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gpuTimers": false
+      },
+      "hero": {
+        "durationMs": 3521.8000000002794,
+        "frames": 147,
+        "fps": 41.74001930830494,
+        "raf": 147,
+        "medianMs": 21.40000000037253,
+        "p95Ms": 34.09999999962747,
+        "longTasks": [
+          75,
+          50
+        ],
+        "scriptMs": 64.63799999999998,
+        "layoutMs": 0,
+        "taskMs": 3579.9839999999995
+      },
+      "cube": {
+        "durationMs": 3529,
+        "frames": 84,
+        "fps": 23.80277699064891,
+        "raf": 84,
+        "medianMs": 40.8000000002794,
+        "p95Ms": 58.10000000009313,
+        "longTasks": [
+          50,
+          53,
+          52,
+          56,
+          56,
+          59,
+          76,
+          58
+        ],
+        "scriptMs": 60.77899999999992,
+        "layoutMs": 0,
+        "taskMs": 3124.109000000001
+      },
+      "errors": [],
+      "reportPath": "/tmp/nikolay-profile-cosmic-flow-final.json"
+    }
   },
-  "final": {
-    "tag": "optimized",
-    "renderer": {
-      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
-      "gpuTimers": false
+  "intro": [
+    {
+      "device": "desktop",
+      "navigation_to_release_ms": 7077,
+      "canvas": {
+        "width": 1440,
+        "height": 900,
+        "cssWidth": 1440,
+        "cssHeight": 900
+      },
+      "stages": {
+        "black-hole": {
+          "frames": 5,
+          "median_interval_ms": 90.25,
+          "p95_interval_ms": 398.10000000009313
+        },
+        "plunge": {
+          "frames": 11,
+          "median_interval_ms": 122.55000000004657,
+          "p95_interval_ms": 136.70000000018626
+        },
+        "galaxies": {
+          "frames": 73,
+          "median_interval_ms": 38.64999999990687,
+          "p95_interval_ms": 71.29999999981374
+        },
+        "arrival": {
+          "frames": 32,
+          "median_interval_ms": 35.1999999997206,
+          "p95_interval_ms": 100.59999999962747
+        }
+      }
     },
-    "ton": {
-      "durationMs": 3739.7999999988824,
-      "frames": 15,
-      "fps": 4.010909674315333,
-      "raf": 15,
-      "medianMs": 252.10000000149012,
-      "p95Ms": 266.80000000074506,
-      "longTasks": [
-        230,
-        254,
-        263,
-        260,
-        241,
-        251,
-        231,
-        256,
-        237,
-        244,
-        251,
-        259,
-        244,
-        266,
-        241
-      ],
-      "scriptMs": 11.723999999999958,
-      "layoutMs": 0,
-      "taskMs": 4266.376000000001
+    {
+      "device": "mobile",
+      "navigation_to_release_ms": 7001.399999999907,
+      "canvas": {
+        "width": 390,
+        "height": 844,
+        "cssWidth": 390,
+        "cssHeight": 844
+      },
+      "stages": {
+        "black-hole": {
+          "frames": 16,
+          "median_interval_ms": 33.0,
+          "p95_interval_ms": 146.3000000002794
+        },
+        "plunge": {
+          "frames": 39,
+          "median_interval_ms": 32.4000000001397,
+          "p95_interval_ms": 68.0
+        },
+        "galaxies": {
+          "frames": 159,
+          "median_interval_ms": 16.700000000186265,
+          "p95_interval_ms": 29.700000000186265
+        },
+        "arrival": {
+          "frames": 68,
+          "median_interval_ms": 16.600000000093132,
+          "p95_interval_ms": 25.0
+        }
+      }
+    }
+  ],
+  "historical_removed_scroll_version": {
+    "method": "1440x1000, DPR=1, approximately 3.5 seconds per scene; identical preview/browser configuration",
+    "before": {
+      "tag": "before",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gpuTimers": false
+      },
+      "ton": {
+        "durationMs": 3653,
+        "frames": 15,
+        "fps": 4.106214070626882,
+        "raf": 15,
+        "medianMs": 242.7999999988824,
+        "p95Ms": 277,
+        "longTasks": [
+          239,
+          234,
+          250,
+          230,
+          243,
+          243,
+          255,
+          276,
+          248,
+          228,
+          240,
+          241,
+          230,
+          251
+        ],
+        "scriptMs": 23.733000000000004,
+        "layoutMs": 0,
+        "taskMs": 4157.685
+      },
+      "cube": {
+        "durationMs": 3597.699999999255,
+        "frames": 20,
+        "fps": 5.559107207383645,
+        "raf": 20,
+        "medianMs": 181,
+        "p95Ms": 194.5,
+        "longTasks": [
+          176,
+          185,
+          160,
+          179,
+          188,
+          187,
+          184,
+          181,
+          159,
+          180,
+          176,
+          173,
+          158,
+          178,
+          182,
+          183,
+          168,
+          193,
+          191
+        ],
+        "scriptMs": 20.333000000000155,
+        "layoutMs": 0,
+        "taskMs": 3958.822999999999
+      },
+      "errors": []
     },
-    "cube": {
-      "durationMs": 3543.699999999255,
-      "frames": 19,
-      "fps": 5.361627677287579,
-      "raf": 19,
-      "medianMs": 187.90000000037253,
-      "p95Ms": 202.60000000149012,
-      "longTasks": [
-        197,
-        202,
-        201,
-        195,
-        173,
-        186,
-        186,
-        175,
-        184,
-        186,
-        179,
-        168,
-        171,
-        188,
-        185,
-        179,
-        166,
-        187
-      ],
-      "scriptMs": 8.962000000000025,
-      "layoutMs": 0,
-      "taskMs": 3514.2570000000005
-    },
-    "errors": []
+    "final": {
+      "tag": "optimized",
+      "renderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "gpuTimers": false
+      },
+      "ton": {
+        "durationMs": 3739.7999999988824,
+        "frames": 15,
+        "fps": 4.010909674315333,
+        "raf": 15,
+        "medianMs": 252.10000000149012,
+        "p95Ms": 266.80000000074506,
+        "longTasks": [
+          230,
+          254,
+          263,
+          260,
+          241,
+          251,
+          231,
+          256,
+          237,
+          244,
+          251,
+          259,
+          244,
+          266,
+          241
+        ],
+        "scriptMs": 11.723999999999958,
+        "layoutMs": 0,
+        "taskMs": 4266.376000000001
+      },
+      "cube": {
+        "durationMs": 3543.699999999255,
+        "frames": 19,
+        "fps": 5.361627677287579,
+        "raf": 19,
+        "medianMs": 187.90000000037253,
+        "p95Ms": 202.60000000149012,
+        "longTasks": [
+          197,
+          202,
+          201,
+          195,
+          173,
+          186,
+          186,
+          175,
+          184,
+          186,
+          179,
+          168,
+          171,
+          188,
+          185,
+          179,
+          166,
+          187
+        ],
+        "scriptMs": 8.962000000000025,
+        "layoutMs": 0,
+        "taskMs": 3514.2570000000005
+      },
+      "errors": []
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { spiralGalaxy } from './galaxyGeometry'
 import { useSceneBusy } from './useSceneBudget'
 
 // A single 2D composited sky: generated cloud textures, three star depths, no downloads.
@@ -42,7 +43,17 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       paint.putImageData(pixels, 0, 0)
       return texture
     }
-    const blueCloud = cloud([49, 81, 135], .4), violetCloud = cloud([94, 59, 128], 1.8)
+    const blueCloud = cloud([103, 113, 130], .4), violetCloud = cloud([118, 116, 132], 1.8)
+    const galaxy=document.createElement('canvas');galaxy.width=galaxy.height=512
+    const g=galaxy.getContext('2d')!,spiral=spiralGalaxy(823,3500)
+    const core=g.createRadialGradient(256,256,0,256,256,65)
+    core.addColorStop(0,'#e5e8ed88');core.addColorStop(.2,'#c2cbd533');core.addColorStop(1,'#a4b8d000')
+    g.fillStyle=core;g.fillRect(0,0,512,512)
+    for(let i=0;i<spiral.positions.length;i+=3){
+      const x=256+spiral.positions[i]*44,y=256+spiral.positions[i+1]*44
+      g.fillStyle='rgba(204,215,232,.24)';g.beginPath();g.arc(x,y,.65,0,Math.PI*2);g.fill()
+    }
+    const galaxies=[{x:.83,y:.24,depth:.35,angle:-.5},{x:.1,y:.68,depth:.65,angle:.8},{x:.86,y:.9,depth:.9,angle:-.25}]
     const draw = () => {
       ctx.clearRect(0, 0, width, height)
       if (!reduced && !paused) { drift.x += (pointer.x - drift.x) * .035; drift.y += (pointer.y - drift.y) * .035 }
@@ -59,6 +70,14 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
         ctx.drawImage(violetCloud, -width * .6, -height * .15, width * .85, height * 1.1)
       }
       ctx.restore()
+      for(const [i,gal] of galaxies.entries()){
+        if(low&&i===2)continue
+        const size=Math.min(width*.42,360)*( .65+gal.depth*.4)
+        const y=(gal.y*height-scroll*gal.depth*95+Math.sin(time*.014+i)*14+height*100)%height
+        ctx.save();ctx.translate(gal.x*width+drift.x*gal.depth*14,y);ctx.rotate(gal.angle+time*.002)
+        ctx.scale(1,.58);ctx.globalAlpha=.18+gal.depth*.08;ctx.globalCompositeOperation='screen'
+        ctx.drawImage(galaxy,-size/2,-size/2,size,size);ctx.restore()
+      }
       const count = low ? 105 : stars.length
       for (let i = 0; i < count; i++) {
         const s = stars[i], parallax = reduced ? 0 : scroll * s.depth * 30
@@ -88,22 +107,20 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); draw()
     }
     const tick = (now: number) => {
-      if (document.hidden || focus.current) { frame = 0; return }
-      if (now - last >= (low ? 83 : 40)) { time += Math.min((now - last) / 1000, .15); last = now; draw() }
+      if (document.hidden) { frame = 0; return }
+      if (now - last >= (focus.current ? (low ? 200 : 120) : (low ? 83 : 50))) { time += Math.min((now - last) / 1000, .15); last = now; draw() }
       frame = requestAnimationFrame(tick)
     }
     const visibility = () => {
       cancelAnimationFrame(frame)
-      if (!document.hidden && !reduced && !paused && !focus.current) { last = performance.now(); frame = requestAnimationFrame(tick) }
+      if (!document.hidden && !reduced && !paused) { last = performance.now(); frame = requestAnimationFrame(tick) }
     }
     const move = (e: PointerEvent) => { if (!reduced && !paused && e.pointerType !== 'touch') { pointer.x = e.clientX / width - .5; pointer.y = e.clientY / height - .5 } }
-    const scrollDraw = () => { if (!document.hidden && focus.current) draw() }
-    window.addEventListener('scroll', scrollDraw, { passive: true })
     wake.current=visibility
     resize(); visibility()
     window.addEventListener('resize', resize, { passive: true }); window.addEventListener('pointermove', move, { passive: true })
     document.addEventListener('visibilitychange', visibility)
-    return () => {wake.current=null;window.removeEventListener('scroll', scrollDraw);cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
+    return () => {wake.current=null;cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
   }, [reduced, paused])
   return <canvas className="ambient-background" ref={canvas} aria-hidden="true" />
 }
