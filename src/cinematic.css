@@ -1,4 +1,4 @@
-/* The hero is a regular section. Its decorative spiral never drives scrolling. */
+/* Bounded hero viewport; interactive.css enables the optional scroll passage. */
 .site-root{overflow:clip}
 .experience-track{position:relative;height:auto}
 .experience-pin{position:relative;min-height:calc(100svh - 100px);isolation:isolate;overflow:clip;background:#090a0bf5}

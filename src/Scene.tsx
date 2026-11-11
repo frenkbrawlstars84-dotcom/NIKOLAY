@@ -7,25 +7,20 @@ import CanvasHealth from './CanvasHealth'
 import OrbitalNexus from './OrbitalNexus'
 import type { ArtFrame } from './sceneTypes'
 import useSceneBudget from './useSceneBudget'
+import type { ObjectInteraction } from './objectInteraction'
+import { getWebGLProfile } from './webglProfile'
 
-type SceneProps = { reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
-export default function Scene({ reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
-  const [supported] = useState(() => {
-    try {
-      const gl = document.createElement('canvas').getContext('webgl2')
-      if (!gl) return false
-      gl.getExtension('WEBGL_lose_context')?.loseContext()
-      return true
-    } catch { return false }
-  })
+type SceneProps = { interaction:ObjectInteraction; progress:RefObject<number>; reduced: boolean; paused: boolean; anchor: RefObject<HTMLDivElement | null>; onReady: () => void; onUnavailable: () => void }
+export default function Scene({ interaction, progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
+  const [profile]=useState(getWebGLProfile),supported=profile.supported
   useEffect(() => { if (!supported) onUnavailable() }, [supported, onUnavailable])
   const [visible, setVisible] = useState(!document.hidden)
   const host = useRef<HTMLDivElement>(null)
-  const ownsFrame = useSceneBudget(host, supported)
+  const ownsFrame = useSceneBudget(anchor, supported)
   const frame = useRef<ArtFrame>({ x: .25, y: 0, width: .5, height: .65 })
   const [inView, setInView] = useState(true)
-  const software = useRef(false)
-  const [low, setLow] = useState(() => matchMedia('(max-width: 900px)').matches || navigator.hardwareConcurrency <= 4)
+  const software = useRef(profile.software)
+  const [low, setLow] = useState(() => profile.software || matchMedia('(max-width: 900px)').matches || navigator.hardwareConcurrency <= 4)
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting))
     if (host.current) observer.observe(host.current)
@@ -53,5 +48,5 @@ export default function Scene({ reduced, paused, anchor, onReady, onUnavailable 
     aria-label="Орбитальная цифровая скульптура NIKOLAY"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView || !ownsFrame ? 'demand' : 'always'}
     onCreated={({gl})=>{const c=gl.getContext(),d=c.getExtension('WEBGL_debug_renderer_info');software.current=/swiftshader|llvmpipe/i.test(String(c.getParameter(d?d.UNMASKED_RENDERER_WEBGL:c.RENDERER)));if(software.current)setLow(true)}} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-  ><AdaptiveQuality low={low} active={!reduced&&!paused&&visible&&inView&&ownsFrame}><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><OrbitalNexus reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} /></AdaptiveQuality></Canvas> : <SceneFallback />}</div>
+  ><AdaptiveQuality low={low} active={!reduced&&!paused&&visible&&inView&&ownsFrame}><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><OrbitalNexus interaction={interaction} progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} /></AdaptiveQuality></Canvas> : <SceneFallback />}</div>
 }

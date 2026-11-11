@@ -2,16 +2,19 @@ import assert from 'node:assert/strict'
 
 export async function checkObjects(browser,url) {
   const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'})
+  // Force the full physical material path even on the CI software renderer.
+  await page.addInitScript(()=>{const get=WebGL2RenderingContext.prototype.getParameter;WebGL2RenderingContext.prototype.getParameter=function(p){return p===37446?'Physical material verification':get.call(this,p)}})
   const errors=[]
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
   await page.addInitScript(()=>{
     window.__objects={matrices:{},frames:{},materials:{}}
-    const names=new WeakMap(),proto=WebGL2RenderingContext.prototype
+    const names=new WeakMap(),programOf=new WeakMap(),glassPrograms=new WeakSet(),proto=WebGL2RenderingContext.prototype
     const kind=canvas=>canvas.closest('.accent-signal')?'signal':canvas.closest('.accent-glass')?'glass':canvas.closest('.project-screens')?'screens':null
     const location=proto.getUniformLocation
-    proto.getUniformLocation=function(program,name){const value=location.call(this,program,name);if(value)names.set(value,name);return value}
+    proto.getUniformLocation=function(program,name){const value=location.call(this,program,name);if(value){names.set(value,name);programOf.set(value,program)}if(name==='transmission')glassPrograms.add(program);return value}
     const matrix=proto.uniformMatrix4fv
-    proto.uniformMatrix4fv=function(location,transpose,data){const key=kind(this.canvas);if(key&&names.get(location)==='modelViewMatrix')window.__objects.matrices[key]=Array.from(data);return matrix.call(this,location,transpose,data)}
+    // Read the refractive object, not its three stationary background bars.
+    proto.uniformMatrix4fv=function(location,transpose,data){const key=kind(this.canvas);if(key&&names.get(location)==='modelViewMatrix'&&(key!=='glass'||glassPrograms.has(programOf.get(location))))window.__objects.matrices[key]=Array.from(data);return matrix.call(this,location,transpose,data)}
     const scalar=proto.uniform1f
     proto.uniform1f=function(location,value){const key=kind(this.canvas),name=names.get(location);if(key==='glass'&&['transmission','ior'].includes(name))window.__objects.materials[name]=value;return scalar.call(this,location,value)}
     const clear=proto.clear
@@ -24,7 +27,7 @@ export async function checkObjects(browser,url) {
     await host.scrollIntoViewIfNeeded();await page.locator(`.accent-${kind}[data-accent-status="ready"]`).waitFor({timeout:20000})
     await page.waitForFunction(key=>Boolean(window.__objects.matrices[key]),kind)
     const before=await page.evaluate(key=>window.__objects.matrices[key],kind)
-    const canvas=host.locator('canvas');await canvas.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(250)
+    const canvas=host.locator('canvas'),surface=host.locator('.interactive-surface');await surface.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(250)
     const after=await page.evaluate(key=>window.__objects.matrices[key],kind)
     assert(after.some((v,i)=>Math.abs(v-before[i])>.01),`${kind}: actual 3D transform responds to keyboard input`)
     const r=await canvas.boundingBox()

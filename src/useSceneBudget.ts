@@ -12,7 +12,7 @@ function choose() {
   if (!document.hidden) for (const [id, element] of candidates) {
     const r = element.getBoundingClientRect()
     if (r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) continue
-    const score = id === hovered ? -1 : Math.abs((r.top + r.bottom) / 2 - innerHeight / 2) / innerHeight
+    const score = element.contains(document.activeElement) ? -2 : id === hovered ? -1 : Math.abs((r.top + r.bottom) / 2 - innerHeight / 2) / innerHeight
     if (score < best) { best = score; next = id }
   }
   if (owner !== next) { owner = next; subscribers.forEach(notify => notify()) }
@@ -37,10 +37,12 @@ export default function useSceneBudget(host: RefObject<HTMLElement | null>, enab
     const enter = (e: PointerEvent) => { if (e.pointerType !== 'touch') { hovered = id; choose() } }
     const leave = () => { if (hovered === id) { hovered = null; choose() } }
     element.addEventListener('pointerenter', enter); element.addEventListener('pointerleave', leave)
+    element.addEventListener('focusin', schedule);element.addEventListener('focusout', schedule)
     choose()
     return () => {
       candidates.delete(id); if (hovered === id) hovered = null
       element.removeEventListener('pointerenter', enter); element.removeEventListener('pointerleave', leave)
+      element.removeEventListener('focusin', schedule);element.removeEventListener('focusout', schedule)
       if (!candidates.size) {
         window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule)
         document.removeEventListener('visibilitychange', schedule); cancelAnimationFrame(frame); frame = 0

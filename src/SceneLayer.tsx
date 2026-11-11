@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import SceneFallback from './SceneFallback'
+import type { ObjectInteraction } from './objectInteraction'
 
 const Scene = lazy(() => import('./Scene'))
 export type SceneStatus = 'loading' | 'ready' | 'fallback'
@@ -13,8 +14,8 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
   render() { return this.state.failed ? null : this.props.children }
 }
 
-export default function SceneLayer({ reduced, paused, anchor, onStatus, deferred = false }: {
-  deferred?: boolean; reduced: boolean; paused: boolean
+export default function SceneLayer({ reduced, paused, anchor, onStatus, progress, interaction, deferred = false }: {
+  progress: RefObject<number>; interaction: ObjectInteraction; deferred?: boolean; reduced: boolean; paused: boolean
   anchor: RefObject<HTMLDivElement | null>; onStatus: (status: SceneStatus) => void
 }) {
   const [status, setStatus] = useState<SceneStatus>('loading')
@@ -35,7 +36,7 @@ export default function SceneLayer({ reduced, paused, anchor, onStatus, deferred
   }, [status, fail, deferred])
   return <div className="scene-layer" data-scene-status={status}>
     {!deferred && status !== 'fallback' && <SceneBoundary onFailure={fail}>
-      <Suspense fallback={null}><Scene reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
+      <Suspense fallback={null}><Scene interaction={interaction} progress={progress} reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
     </SceneBoundary>}
     <div className="hero-portal-placeholder" aria-hidden={status==='ready'}><SceneFallback/></div>
   </div>

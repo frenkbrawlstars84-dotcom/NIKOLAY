@@ -9,6 +9,9 @@ import './cosmic.css'
 import './objects.css'
 import './hero-portal.css'
 import './premium.css'
+import './interactive.css'
+import InteractiveSurface from './InteractiveSurface'
+import { ObjectInteraction } from './objectInteraction'
 import CosmicIntro, { shouldPlayIntro } from './CosmicIntro'
 import AmbientBackground from './AmbientBackground'
 import { contacts } from './config'
@@ -23,13 +26,16 @@ const demoDescriptions=['Нажмите: идея превращается в д
 const about='Привет, я Николай. Занимаюсь разработкой современных сайтов для бизнеса. Мне нравится превращать идеи в удобные, привлекательные и технологичные цифровые проекты.'
 function App({ introActive = false }: { introActive?: boolean }){
  const reduced=!!useReducedMotion(); const root=useRef<HTMLDivElement>(null);const [paused,setPaused]=useState(false);const [menu,setMenu]=useState(false);const anchor=useRef<HTMLDivElement>(null);const [demo,setDemo]=useState([false,false,false,false,false]);
+ const [interaction]=useState(()=>new ObjectInteraction()),progress=useRef(0)
+ const [tall,setTall]=useState(()=>innerHeight>650)
+ useEffect(()=>{const media=matchMedia('(min-height:651px)'),change=()=>setTall(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change)},[])
  const [sceneStatus,setSceneStatus]=useState<SceneStatus>('loading')
  const toggle=(i:number)=>setDemo(v=>v.map((x,n)=>n===i?!x:x))
- useCinematicFlow(root,anchor,reduced)
+ useCinematicFlow(root,anchor,reduced,progress,interaction,sceneStatus==='ready'&&tall)
  const telegram=contacts.telegramUrl
  return <MotionConfig reducedMotion="user"><div ref={root} className={`site-root visual-status-${sceneStatus} portal-revealed`}><AmbientBackground reduced={reduced} paused={paused||introActive}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening"><div className="experience-track"><div className="experience-pin">
- <div className="experience-art"><SceneLayer reduced={reduced} paused={paused||introActive} anchor={anchor} onStatus={setSceneStatus} deferred={introActive}/></div>
+ <div className="experience-art"><SceneLayer interaction={interaction} progress={progress} reduced={reduced} paused={paused||introActive} anchor={anchor} onStatus={setSceneStatus} deferred={introActive}/></div>
  <section className="hero shell">
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
    <div className="hero-composition">
@@ -43,9 +49,9 @@ function App({ introActive = false }: { introActive?: boolean }){
          <div className="hero-actions"><a className="button light" href="#projects">Мои проекты <ArrowUpRight size={17}/></a><a className="text-link" href="#contact">Обсудить проект <ArrowUpRight size={16}/></a></div>
        </motion.div>
      </div>
-     <div className="hero-visual" ref={anchor}>
+     <InteractiveSurface className="hero-visual" ref={anchor} interaction={interaction} reduced={reduced} disabled={sceneStatus!=='ready'||paused||introActive} label="Раскрыть орбитальный объект">
        <div className="visual-coordinate" aria-hidden="true"><span>01 / ORBITAL NEXUS</span><span>GENERATIVE / LIVE</span></div>
-     </div>
+     </InteractiveSurface>
    </div>
    <div className="hero-foot"><a href="#about"><ArrowDown size={15}/> ПРОКРУТИТЕ, ЧТОБЫ ИССЛЕДОВАТЬ</a><button onClick={()=>setPaused(!paused)} aria-label={paused?'Продолжить анимации':'Приостановить анимации'} aria-pressed={paused}>{paused?<Play size={13}/>:<Pause size={13}/>} {paused?'PLAY':'PAUSE'} / MOTION</button></div>
  </section>

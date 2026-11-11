@@ -10,7 +10,7 @@ import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import StudioLighting from './StudioLighting'
 
-export type ScreenSceneProps = { position: MotionValue<number>; pointer: MutableRefObject<{x:number;y:number}>; reduced:boolean; paused:boolean; present:boolean; low:boolean; onReady:()=>void; onUnavailable:()=>void }
+export type ScreenSceneProps = { position: MotionValue<number>; pointer: MutableRefObject<{x:number;y:number;hover:boolean}>; reduced:boolean; paused:boolean; present:boolean; low:boolean; onReady:()=>void; onUnavailable:()=>void }
 function placeholder(project: Project) {
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=800
   const ctx=canvas.getContext('2d')!
@@ -29,12 +29,13 @@ function placeholder(project: Project) {
   return texture
 }
 function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Project;index:number}) {
-  const group=useRef<THREE.Group>(null),{ gl,invalidate }=useThree()
+  const group=useRef<THREE.Group>(null),front=useRef<THREE.Mesh>(null),{ gl,invalidate }=useThree()
   const resources=useMemo(()=>{
     const cover=placeholder(project)
+    cover.anisotropy=Math.min(8,gl.capabilities.getMaxAnisotropy())
     const frame=new RoundedBoxGeometry(5.6,3.76,.18,props.low?1:2,.075)
     const screen=new THREE.PlaneGeometry(5.34,3.3375)
-    const body=new THREE.MeshStandardMaterial({color:'#47566d',metalness:.85,roughness:.23,transparent:true})
+    const body=new THREE.MeshStandardMaterial({color:'#47566d',emissive:'#34567d',emissiveIntensity:.03,metalness:.85,roughness:.23,transparent:true})
     const face=new THREE.MeshBasicMaterial({map:cover,toneMapped:false,transparent:true})
     return {cover,frame,screen,body,face}
   },[project,props.low])
@@ -59,16 +60,20 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     const blend=props.reduced?1:1-Math.exp(-dt*9)
     group.current.position.x=THREE.MathUtils.lerp(group.current.position.x,props.reduced?0:offset*2.05,blend)
     group.current.position.y=THREE.MathUtils.lerp(group.current.position.y,props.reduced?0:distance*.12,blend)
-    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.42,blend)
+    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*(pointer.hover?.5:.26),blend)
     group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*.03),blend))
     group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.22*attention,blend)
     group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.16*attention,blend)
     resources.face.opacity=props.reduced?1:Math.max(.5,1-distance*.18)
+    // Opaque active screenshots write depth first, avoiding the expensive
+    // metallic surface hidden behind them. Fading panels keep normal sorting.
+    if(front.current)front.current.renderOrder=resources.face.opacity>.995?-1:0
     resources.body.opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.35,.15,1)
+    resources.body.emissiveIntensity=THREE.MathUtils.lerp(resources.body.emissiveIntensity,props.reduced?.03:attention*(pointer.hover?.24:.03),blend)
   })
   return <group ref={group} position={[index*1.65,index*.12,-index*2.5]}>
     <mesh geometry={resources.frame} material={resources.body}/>
-    <mesh geometry={resources.screen} material={resources.face} position={[0,-.08,.101]}/>
+    <mesh ref={front} geometry={resources.screen} material={resources.face} position={[0,-.08,.101]}/>
     {[-2.5,-2.35,-2.2].map(x=><mesh key={x} position={[x,1.73,.108]}><circleGeometry args={[.025,8]}/><meshBasicMaterial color="#bdbdbd"/></mesh>)}
   </group>
 }

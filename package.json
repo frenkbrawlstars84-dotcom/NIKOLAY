@@ -10,8 +10,10 @@
     "capture:projects": "node scripts/capture-projects.mjs",
     "check:captures": "node scripts/check-project-captures.mjs",
     "profile:scenes": "node scripts/profile-scenes.mjs",
+    "profile:experience": "node scripts/profile-experience.mjs",
+    "test:interactions": "node scripts/check-interactions.mjs",
     "test:browser": "npm run test:models && npm run build && node scripts/check-browser.mjs",
-    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/introJourney.test.ts tests/qualityPolicy.test.ts",
+    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/introJourney.test.ts tests/qualityPolicy.test.ts tests/interaction.test.ts",
     "test:rubik": "node --experimental-strip-types --test tests/rubik.test.ts",
     "test:intro": "node scripts/check-intro.mjs"
   },

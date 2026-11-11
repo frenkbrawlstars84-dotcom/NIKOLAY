@@ -2,6 +2,8 @@ import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState } f
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
 import useSceneBudget from './useSceneBudget'
+import InteractiveSurface from './InteractiveSurface'
+import { ObjectInteraction } from './objectInteraction'
 const AccentScene = lazy(() => import('./AccentScene'))
 export type AccentKind = 'signal' | 'glass' | 'cube'
 
@@ -27,6 +29,7 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   const [low, setLow] = useState(() => innerWidth <= 900 || navigator.hardwareConcurrency <= 4)
   const [status, setStatus] = useState<'loading' | 'ready' | 'fallback'>('loading')
   const phase = useRef(status)
+  const [interaction] = useState(() => new ObjectInteraction())
   const ownsFrame = useSceneBudget(host, status !== 'fallback')
   const fail = useCallback(() => { phase.current = 'fallback'; setStatus('fallback') }, [])
   const ready = useCallback(() => { if (phase.current === 'loading') { phase.current = 'ready'; setStatus('ready') } }, [])
@@ -47,7 +50,7 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   const fallback = <AccentFallback kind={kind}/>
   const active = ownsFrame && inView && visible && !paused && !reduced
   return <motion.figure ref={host} className={`accent-object accent-${kind}`} data-accent-status={status} data-scene-running={active} initial={reduced?false:{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.15}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
-    <div className="accent-stage">{!seen || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene kind={kind} reduced={reduced} paused={!active} low={low} onReady={ready} onUnavailable={fail}/></Suspense></AccentBoundary>}</div>
-    <figcaption>{kind === 'cube' ? 'СЛОЖНОЕ — ИЗ ПРОСТЫХ ЧАСТЕЙ' : kind === 'glass' ? 'СТЕКЛО / ПРЕЛОМЛЕНИЕ / СВЕТ' : 'ПОТЯНИТЕ ДЛЯ ВРАЩЕНИЯ'}</figcaption>
+    <InteractiveSurface interaction={interaction} reduced={reduced} disabled={status!=='ready'||paused} className="accent-stage" label={kind==='cube'?'Кубик Рубика: перемешать и собрать':kind==='glass'?'Разобрать и собрать стеклянный многогранник':'Расплести хромированный узел'} hint={kind==='cube'?'Нажмите: перемешать и собрать':'Нажмите, чтобы изменить форму'}>{!seen || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene interaction={interaction} kind={kind} reduced={reduced} paused={!active} low={low} onReady={ready} onUnavailable={fail}/></Suspense></AccentBoundary>}</InteractiveSurface>
+    <figcaption>{kind === 'cube' ? 'СЛОЖНОЕ — ИЗ ПРОСТЫХ ЧАСТЕЙ' : kind === 'glass' ? 'СТЕКЛО / ПРЕЛОМЛЕНИЕ / СВЕТ' : 'НАЖМИТЕ / ПОТЯНИТЕ / ИССЛЕДУЙТЕ'}</figcaption>
   </motion.figure>
 }

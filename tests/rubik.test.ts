@@ -68,3 +68,24 @@ test('idle-to-turn boundary uses only the remaining fraction of a frame',()=>{
  const before=JSON.stringify(model.cells);model.advance(.2)
  assert.equal(JSON.stringify(model.cells),before,'The completed layer stays still during the next pause')
 })
+
+test('automatic scramble and exact inverse solve all coordinates/orientations in a short cycle',()=>{
+ const model=new RubikController(),initial=JSON.stringify(model.cells)
+ model.advance(model.pause+6*model.duration+5*model.turnPause+.01)
+ assert.equal(model.phase,'scrambled');assert.equal(model.isSolved,false);valid(model.cells)
+ model.advance(model.scrambledPause-.01+6*model.duration+5*model.turnPause+.001)
+ assert.equal(model.completedCycles,1);assert.equal(model.isSolved,true);assert.equal(JSON.stringify(model.cells),initial)
+ for(let i=0;i<6000;i++)model.advance(.011)
+ assert(model.completedCycles>8);valid(model.cells)
+})
+test('click queues one complete extra combination and never overlaps turns',()=>{
+ const model=new RubikController();model.advance(2)
+ const move=model.active?.move,angle=model.angle
+ assert(model.requestCombo());for(let i=0;i<100;i++)assert.equal(model.requestCombo(),false)
+ assert.equal(model.active?.move,move);assert.equal(model.angle,angle)
+ let steps=0
+ while(model.completedCombos===0&&steps++<1200)model.advance(.01)
+ assert.equal(model.completedCombos,1);assert.equal(model.isSolved,true);assert.equal(model.comboQueued,false)
+ assert(model.requestCombo());model.advance(.1);assert.equal(model.requestCombo(),false)
+ model.finishPending();assert(model.isSolved);assert.equal(model.active,null)
+})

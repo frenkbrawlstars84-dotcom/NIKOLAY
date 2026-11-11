@@ -97,8 +97,8 @@ try {
     await healthy(page, url)
     for (let i = 0; i < 3; i++) { await page.reload(); await healthy(page) }
     assert.equal(await page.locator('.opening').evaluate(e=>e.nextElementSibling.id),'projects')
-    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'relative','Hero remains free of repeated journeys')
-    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height<innerHeight*1.5),'Hero has no scroll runway')
+    assert.equal(await page.locator('.experience-pin').evaluate(e=>getComputedStyle(e).position),'sticky','Hero retains its requested orbital scroll passage')
+    assert(await page.locator('.experience-track').evaluate(e=>e.getBoundingClientRect().height>innerHeight*2),'Hero has a bounded scroll passage')
     for(const selector of ['#projects','#about','#capabilities','#contact','#about','#projects','.header']){
       await page.locator(selector).scrollIntoViewIfNeeded();await page.waitForTimeout(200)
       const sky=await page.locator('.ambient-background').boundingBox()
@@ -179,7 +179,7 @@ try {
   {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
     await page.addInitScript(() => {
-      window.__cubeStats = { counts: [], frames: 0, uploads: 0, lastBodyCount: 0 }
+      window.__cubeStats = { counts: [], frames: 0, uploads: 0, lastBodyCount: 0, samples: [] }
       const proto = WebGL2RenderingContext.prototype
       for (const method of ['drawElementsInstanced', 'drawArraysInstanced']) {
         const original = proto[method]
@@ -187,7 +187,7 @@ try {
           if (this.canvas.closest('.accent-cube')) {
             const count = args.at(-1), stats = window.__cubeStats
             stats.counts.push(count)
-            if (count === 26 || count === 17) { stats.lastBodyCount = count; stats.frames++ }
+            if (count === 26 || count === 17) { stats.lastBodyCount = count; stats.frames++; stats.samples.push({count,uploads:stats.uploads}) }
           }
           return original.apply(this, args)
         }
@@ -204,17 +204,19 @@ try {
     assert.equal(await page.locator('.accent-cube button').count(), 0, 'Cube has no controls')
     assert.equal(await page.locator('.accent-cube canvas').evaluate(c => c.getContext('webgl2').getContextAttributes().antialias), true)
     await page.waitForFunction(() => window.__cubeStats.lastBodyCount === 17, null, { timeout: 25000 })
-    const before = await page.evaluate(() => ({ ...window.__cubeStats }))
-    await page.waitForTimeout(300)
-    const during = await page.evaluate(() => ({ ...window.__cubeStats }))
-    assert.equal(during.uploads, before.uploads, 'Layer rotation uploads no instance matrices between turn boundaries')
-    assert(during.frames > before.frames, 'The pivot continues rendering between turn boundaries')
+    const startSample=await page.evaluate(()=>window.__cubeStats.samples.length)
+    await page.waitForFunction(n=>window.__cubeStats.samples.length>=n+9,startSample)
+    const samples=await page.evaluate(n=>window.__cubeStats.samples.slice(n),startSample)
+    assert(samples.some((s,i)=>i>0&&s.count===17&&samples[i-1].count===17&&s.uploads===samples[i-1].uploads),'Moving-layer frames render without uploading instance matrices; actual turn boundaries may upload')
     await page.getByRole('button',{name:'Приостановить анимации',exact:true}).evaluate(e=>e.click())
-    await page.waitForTimeout(250)
-    assert.equal(await page.evaluate(()=>window.__cubeStats.uploads),during.uploads,'Pausing mid-turn preserves the pivot without resetting instance buffers')
-    await page.getByRole('button',{name:'Продолжить анимации',exact:true}).evaluate(e=>e.click())
     await page.waitForTimeout(100)
-    assert.equal(await page.evaluate(()=>window.__cubeStats.uploads),during.uploads,'Resuming mid-turn does not rebuild or reset the layer')
+    const pausedUploads=await page.evaluate(()=>window.__cubeStats.uploads)
+    await page.waitForTimeout(250)
+    assert.equal(await page.evaluate(()=>window.__cubeStats.uploads),pausedUploads,'Pausing mid-turn preserves the pivot without resetting instance buffers')
+    const pausedFrames=await page.evaluate(()=>window.__cubeStats.samples.length)
+    await page.getByRole('button',{name:'Продолжить анимации',exact:true}).evaluate(e=>e.click())
+    await page.waitForFunction(n=>window.__cubeStats.samples.length>n,pausedFrames)
+    assert.equal(await page.evaluate(n=>window.__cubeStats.samples[n].uploads,pausedFrames),pausedUploads,'First resumed frame preserves buffers and the partial turn')
     await page.waitForFunction(() => window.__cubeStats.lastBodyCount === 26, null, { timeout: 15000 })
     const counts = await page.evaluate(() => window.__cubeStats.counts)
     for (const count of [26,54,17,9,33,21]) assert(counts.includes(count), `Expected GPU batch of ${count} instances`)

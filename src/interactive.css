@@ -1,0 +1,29 @@
+/* Interaction belongs to bounded HTML surfaces, keeping the canvases reusable. */
+.interactive-surface{position:relative;isolation:isolate;cursor:pointer;pointer-events:auto;touch-action:pan-y;outline:none;-webkit-tap-highlight-color:transparent}
+.interactive-surface[aria-disabled="true"]{cursor:default}
+.experience-pin .hero-visual{pointer-events:auto}
+.interactive-surface canvas,.accent-object .interactive-surface canvas{pointer-events:none!important;outline:none!important}
+.interactive-surface:focus-visible:not([data-input="pointer"]){outline:1px solid #a9c8ed88;outline-offset:4px;border-radius:10px}
+.interaction-aura{position:absolute;inset:5%;z-index:-1;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse,#83b7ef15,transparent 69%);opacity:0;transition:opacity .45s}
+.interactive-surface:hover .interaction-aura,.interactive-surface:focus-visible .interaction-aura,.interactive-surface[data-interaction-phase="active"] .interaction-aura{opacity:1}
+.interaction-hint{position:absolute;bottom:7%;left:50%;transform:translate(-50%,8px);max-width:95%;white-space:normal;width:max-content;text-align:center;padding:9px 13px;border:1px solid #abcaf02b;border-radius:20px;background:#0b1423cf;backdrop-filter:blur(10px);color:#c3d5ec;font-size:9px;letter-spacing:.25px;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;z-index:3}
+.interactive-surface:not([data-hint-seen="true"]):is(:hover,:focus-visible,[data-feedback="true"])>.interaction-hint{opacity:1;transform:translate(-50%,0)}
+.interactive-surface[aria-disabled="true"]>.interaction-hint{display:none}
+.interactive-surface[data-feedback="true"]>.interaction-aura{opacity:1;background:radial-gradient(ellipse,#a1cfff28,transparent 70%)}
+.hero-visual>.interaction-hint{bottom:9%}.accent-cube .interaction-hint{bottom:0}
+.experience-art{opacity:var(--hero-art-opacity,1)}
+.journey-enabled .experience-track{height:225svh}
+.journey-enabled .experience-pin{position:sticky;top:0;height:calc(100svh - 96px)}
+.journey-enabled .experience-pin .hero{height:100%;min-height:0}
+.journey-enabled #projects{margin-top:-85svh;position:relative;z-index:3;opacity:var(--projects-arrival,0);transform:translateY(calc((1 - var(--projects-arrival,0))*45px));pointer-events:var(--projects-pointer,none)}
+@media(max-width:900px){
+ .journey-enabled .experience-track{height:195svh}
+ .journey-enabled .experience-pin{height:calc(100svh - 78px)}
+ .journey-enabled .experience-pin .hero-composition{min-height:0;gap:12px;padding-block:14px 4px}
+ .journey-enabled .experience-pin .hero-visual{min-height:170px;max-height:290px}
+ .journey-enabled .hero-bottom{margin-top:16px}.journey-enabled .hero-foot{flex-shrink:0}
+}
+@media(prefers-reduced-motion:reduce){.interaction-hint,.interaction-aura{transition:none}.interaction-hint{transform:translate(-50%,0)}}
+/* Edge light is separate from the project navigation hit targets. */
+.project-screens::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 35px #87bcfa16,inset 0 0 0 1px #bdd8fa44;opacity:0;transition:opacity .35s;pointer-events:none}
+.project-screens:hover::after{opacity:1}

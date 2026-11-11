@@ -11,7 +11,7 @@ class ScreenBoundary extends Component<{children:ReactNode;fallback:ReactNode;fa
   render(){return this.state.failed?this.props.fallback:this.props.children}
 }
 export default function ProjectScreens({position,active,reduced,paused}:{position:MotionValue<number>;active:number;reduced:boolean;paused:boolean}) {
-  const host=useRef<HTMLDivElement>(null),pointer=useRef({x:0,y:0})
+  const host=useRef<HTMLDivElement>(null),pointer=useRef({x:0,y:0,hover:false})
   const [seen,setSeen]=useState(false),[inView,setInView]=useState(false),[visible,setVisible]=useState(!document.hidden)
   const [low,setLow]=useState(()=>innerWidth<=900||navigator.hardwareConcurrency<=4)
   const [status,setStatus]=useState<'loading'|'ready'|'fallback'>('loading'),phase=useRef(status)
@@ -28,7 +28,7 @@ export default function ProjectScreens({position,active,reduced,paused}:{positio
   useEffect(()=>{if(seen&&inView&&visible&&status==='loading'){const timeout=setTimeout(fail,10000);return()=>clearTimeout(timeout)}},[seen,inView,visible,status,fail])
   const project=projects[active],running=ownsFrame&&inView&&visible&&!paused&&!reduced
   const fallback=<div className="screen-static-fallback">{project.image?<img src={project.image} alt={`Скриншот сайта ${project.name}`}/>:<><span>{project.upcoming?'СЛЕДУЮЩАЯ ГЛАВА':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ'}</span><strong>{project.name}</strong><small>Обложка проекта · не скриншот</small></>}</div>
-  return <div className="project-screens" ref={host} data-screen-status={status} data-scene-running={running} onPointerMove={e=>{if(reduced||e.pointerType==='touch')return;const r=e.currentTarget.getBoundingClientRect();pointer.current={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5}}} onPointerLeave={()=>{pointer.current={x:0,y:0}}}>
+  return <div className="project-screens" ref={host} data-screen-status={status} data-scene-running={running} onPointerEnter={e=>{if(e.pointerType!=='touch'&&!reduced)pointer.current.hover=true}} onPointerMove={e=>{if(reduced||e.pointerType==='touch')return;const r=e.currentTarget.getBoundingClientRect();pointer.current={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5,hover:true}}} onPointerLeave={()=>{pointer.current={x:0,y:0,hover:false}}}>
     {!seen||status==='fallback'?fallback:<ScreenBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><ProjectScreenScene position={position} pointer={pointer} reduced={reduced} paused={!running} present={inView&&visible} low={low} onReady={ready} onUnavailable={fail}/></Suspense></ScreenBoundary>}
   </div>
 }

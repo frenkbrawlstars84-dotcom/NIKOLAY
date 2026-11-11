@@ -7,6 +7,7 @@ import AdaptiveQuality from './AdaptiveQuality'
 import CanvasHealth from './CanvasHealth'
 import { ARRIVAL_TIME, introJourney } from './introJourney'
 import Galaxy from './Galaxy'
+import { getWebGLProfile } from './webglProfile'
 
 type Props={onReady:()=>void;onUnavailable:()=>void;onArrival:()=>void;host:RefObject<HTMLElement|null>}
 const pointVertex=`
@@ -29,7 +30,7 @@ const trailVertex=`
   uniform float uOpacity;
   varying float vAlpha;
   void main(){
-    vec3 p=position;p.z+=aTip*mix(.015,3.8,uSpeed);
+    vec3 p=position;p.z+=aTip*mix(.015,6.2,pow(uSpeed,1.25));
     vec4 v=modelViewMatrix*vec4(p,1.);
     vAlpha=uOpacity*uSpeed*(.25+.75*aTip)*smoothstep(.7,4.,-v.z)*(1.-smoothstep(140.,220.,-v.z));
     gl_Position=projectionMatrix*v;
@@ -44,15 +45,15 @@ const nebulaFragment=`
     vec2 p=(vUv-.5)*2.;float falloff=pow(max(0.,1.-dot(p,p)),2.);
     vec2 n=p*3.+vec2(uTime*.018,0.);
     float cloud=noise(n)*.6+noise(n*2.1)*.28+noise(n*4.2)*.12;
-    float wisps=pow(max(0.,cloud-.2),2.)*falloff;
-    gl_FragColor=vec4(mix(vec3(.3,.37,.48),vec3(.64,.69,.76),cloud),wisps*uOpacity*.42);
+    float wisps=pow(max(0.,cloud-.36),2.)*falloff;
+    gl_FragColor=vec4(mix(vec3(.3,.37,.48),vec3(.64,.69,.76),cloud),wisps*uOpacity*.29);
   }
 `
 function Nebula({z,index,opacity,clock}:{z:number;index:number;opacity:RefObject<number>;clock:RefObject<number>}) {
   const material=useRef<THREE.ShaderMaterial>(null)
   const uniforms=useMemo(()=>({uOpacity:{value:0},uTime:{value:0}}),[])
   useFrame(()=>{if(material.current){material.current.uniforms.uOpacity.value=opacity.current;material.current.uniforms.uTime.value=clock.current}})
-  return <mesh position={[index%2?12:-10,index%2?-8:5,z]} rotation={[0,0,index*.7]} scale={[75,50,1]}><planeGeometry/><shaderMaterial ref={material} vertexShader="varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}" fragmentShader={nebulaFragment} uniforms={uniforms} transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide}/></mesh>
+  return <mesh position={[index%2?12:-10,index%2?-8:5,z]} rotation={[0,0,index*.7]} scale={[75,50,1]}><planeGeometry/><shaderMaterial ref={material} vertexShader="varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}" fragmentShader={nebulaFragment} uniforms={uniforms} transparent depthWrite={false} blending={THREE.AdditiveBlending} forceSinglePass side={THREE.DoubleSide}/></mesh>
 }
 function UniverseFlight({opacity,clock,speed,low}:{opacity:RefObject<number>;clock:RefObject<number>;speed:RefObject<number>;low:boolean}) {
   const data=useMemo(()=>{
@@ -76,10 +77,10 @@ function UniverseFlight({opacity,clock,speed,low}:{opacity:RefObject<number>;clo
     <lineSegments frustumCulled={false}><bufferGeometry><bufferAttribute attach="attributes-position" args={[data.trails,3]}/><bufferAttribute attach="attributes-aTip" args={[data.tips,1]}/></bufferGeometry><shaderMaterial ref={trailMaterial} vertexShader={trailVertex} fragmentShader={trailFragment} uniforms={trails} transparent depthWrite={false} blending={THREE.AdditiveBlending}/></lineSegments>
     {[-35,-85,-145].map((z,i)=><Nebula key={z} z={z} index={i} opacity={opacity} clock={clock}/>)}
     <Galaxy seed={94} position={[-8,4,-23]} rotation={[.55,.1,-.35]} scale={1.2} opacity={opacity} low={low}/>
-    <Galaxy seed={287} position={[12,-5,-48]} rotation={[-.6,.4,.7]} scale={1.8} opacity={opacity} low={low}/>
-    <Galaxy seed={951} position={[-17,-7,-76]} rotation={[.2,.3,-.6]} scale={2.3} opacity={opacity} low={low}/>
+    <Galaxy kind="barred" seed={287} position={[12,-5,-48]} rotation={[-.6,.4,.7]} scale={1.8} opacity={opacity} low={low}/>
+    <Galaxy kind="elliptical" seed={951} position={[-17,-7,-76]} rotation={[.2,.3,-.6]} scale={2.3} opacity={opacity} low={low}/>
     <Galaxy seed={442} position={[9,9,-105]} rotation={[-.4,-.2,.2]} scale={1.8} opacity={opacity} low={low}/>
-    <Galaxy seed={319} position={[-14,9,-132]} rotation={[.55,.2,-.8]} scale={1.9} opacity={opacity} low={low}/>
+    <Galaxy kind="lenticular" seed={319} position={[-13,8,-115]} rotation={[.55,.2,-.8]} scale={1.65} opacity={opacity} low={low}/>
   </group>
 }
 function Flight({onReady,onUnavailable,onArrival,host,low,simple}:{low:boolean;simple:boolean}&Props) {
@@ -88,7 +89,8 @@ function Flight({onReady,onUnavailable,onArrival,host,low,simple}:{low:boolean;s
     if(document.hidden)return
     elapsed.current+=delta
     const journey=introJourney(elapsed.current)
-    camera.position.set(Math.sin(elapsed.current*.4)*.12,Math.sin(elapsed.current*.3)*.08,journey.z)
+    const drift=journey.flightOpacity
+    camera.position.set(Math.sin(elapsed.current*.4)*.12+Math.sin(elapsed.current*1.1)*drift*.24,Math.sin(elapsed.current*.3)*.08+Math.sin(elapsed.current*.8)*drift*.16,journey.z)
     holeOpacity.current=journey.holeOpacity;flightOpacity.current=journey.flightOpacity;speed.current=journey.streak
     if(stage.current!==journey.stage){stage.current=journey.stage;if(host.current)host.current.dataset.introStage=journey.stage}
     if(elapsed.current>=ARRIVAL_TIME&&!arrived.current){arrived.current=true;onArrival()}
@@ -97,8 +99,11 @@ function Flight({onReady,onUnavailable,onArrival,host,low,simple}:{low:boolean;s
 }
 export default function PortalScene(props:Props) {
   const [visible,setVisible]=useState(!document.hidden)
-  const [software,setSoftware]=useState(false)
+  const [profile]=useState(getWebGLProfile)
+  const [software,setSoftware]=useState(profile.software)
   const low=software||innerWidth<=700||navigator.hardwareConcurrency<=4
   useEffect(()=>{const change=()=>setVisible(!document.hidden);document.addEventListener('visibilitychange',change);return()=>document.removeEventListener('visibilitychange',change)},[])
+  useEffect(()=>{if(!profile.supported)props.onUnavailable()},[profile.supported,props.onUnavailable])
+  if(!profile.supported)return null
   return <Canvas onCreated={({gl})=>{const context=gl.getContext(),debug=context.getExtension('WEBGL_debug_renderer_info');setSoftware(/swiftshader|llvmpipe|softpipe|software/i.test(String(context.getParameter(debug?debug.UNMASKED_RENDERER_WEBGL:context.RENDERER))))}} frameloop={visible?'always':'demand'} camera={{position:[0,0,19],fov:42,near:.1,far:260}} dpr={[1,low?1:Math.min(devicePixelRatio,1.25)]} gl={{antialias:true,alpha:true,powerPreference:'high-performance'}}><AdaptiveQuality low={low} active={visible}><Flight {...props} low={low} simple={false}/></AdaptiveQuality></Canvas>
 }
