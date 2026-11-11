@@ -1,0 +1,25 @@
+/* A separate physical viewport shields the reading column from all WebGL. */
+.hero-composition{grid-template-columns:minmax(0,.87fr) minmax(0,1.13fr);gap:38px}
+.experience-art::before{display:none}
+.experience-pin{background:#090b1078}
+.experience-pin .hero-composition{min-height:590px}
+.experience-pin .hero-visual{min-height:520px}
+.hero-copy::before{background:radial-gradient(ellipse at 20% 50%,#090b10fa 0%,#090b10e8 50%,#090b1080 70%,transparent 88%)}
+.experience-pin .hero-bottom .hero-description{max-width:440px;font-size:16px;line-height:1.85;color:#aeb6c3;letter-spacing:-.15px;margin-bottom:30px;text-wrap:pretty}
+.hero-portal-placeholder{position:absolute;inset:0;pointer-events:none;transition:opacity .75s ease}
+.scene-layer[data-scene-status="ready"] .hero-portal-placeholder{opacity:0}
+.scene-host{height:100%;width:100%;opacity:0;transition:opacity 1s ease}
+.scene-layer[data-scene-status="ready"] .scene-host{opacity:1}
+.hero-actions .button,.hero-actions .text-link{transition:background .25s,box-shadow .3s,transform .3s,color .25s}
+.hero-actions .button:hover{box-shadow:0 0 24px #bdd8fb29,0 6px 24px #0005}
+.hero-actions .text-link:hover{color:#f3f7ff;text-shadow:0 0 14px #a3cfff55}
+.hero-actions svg{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.hero-actions a:hover svg{transform:translate(3px,-3px)}
+.hero-visual::after{content:'';position:absolute;inset:6% 0 8%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 54% 49%,#759ec217 0%,#4c70990a 36%,transparent 67%)}
+.visual-coordinate{letter-spacing:1.5px;font-size:6px;color:#879bb4}
+@media(min-width:1600px){.experience-pin .hero-visual{min-height:600px}.experience-pin .hero-composition{min-height:660px}}
+@media(max-width:1100px) and (min-width:901px){.hero-composition{gap:24px}.hero h1{font-size:clamp(48px,5.1vw,60px);letter-spacing:-3px}.experience-pin .hero-visual{min-height:460px}.experience-pin .hero-bottom .hero-description{font-size:14px}}
+@media(max-width:900px){.experience-pin .hero-composition{gap:14px;min-height:640px}.experience-pin .hero-visual{min-height:290px;max-height:360px}.experience-pin .hero-bottom .hero-description{font-size:14px;line-height:1.75;max-width:500px;margin-bottom:23px}}
+@media(max-width:680px){.experience-pin .hero-visual{min-height:285px;max-height:320px}.experience-pin .hero-bottom .hero-description{font-size:13px;line-height:1.8;margin-bottom:23px;max-width:340px}.experience-pin .hero-composition{gap:22px}.hero-actions .button{padding-inline:18px}.visual-coordinate{font-size:5px;left:4px;right:4px;letter-spacing:1px}}
+@media(max-width:374px){.experience-pin .hero-visual{min-height:255px}.experience-pin .hero-bottom .hero-description{font-size:12px}.hero-actions{gap:14px}}
+@media(prefers-reduced-motion:reduce){.scene-host,.hero-portal-placeholder,.hero-actions a,.hero-actions svg{transition:none}.hero-actions a:hover svg{transform:none}}

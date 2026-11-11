@@ -148,7 +148,7 @@ try {
     if (failure === 'shader') await page.addInitScript(() => {
       const original = WebGL2RenderingContext.prototype.shaderSource
       WebGL2RenderingContext.prototype.shaderSource = function(shader, source) {
-        return original.call(this, shader, source.includes('HERO_SCULPTURE') ? 'INVALID_SHADER' : source)
+        return original.call(this, shader, source.includes('HERO_ENERGY_PORTAL') ? 'INVALID_SHADER' : source)
       }
     })
     if (failure === 'context-lost') {

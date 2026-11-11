@@ -7,6 +7,7 @@ import './style.css'
 import './cinematic.css'
 import './cosmic.css'
 import './objects.css'
+import './hero-portal.css'
 import CosmicIntro, { shouldPlayIntro } from './CosmicIntro'
 import AmbientBackground from './AmbientBackground'
 import { contacts } from './config'
@@ -37,12 +38,12 @@ function App({ introActive = false }: { introActive?: boolean }){
          <h1><FluidText>За пределами</FluidText><br/><em><FluidText>обычного.</FluidText></em></h1>
        </div>
        <motion.div className="hero-bottom" initial={{opacity:0,y:reduced?0:15}} animate={{opacity:1,y:0}} transition={{duration:.7,delay:.35}}>
-         <p>Создаю цифровые впечатления<br/>для вашего бизнеса<span>Веб-сайты, в которых встречаются<br/>эстетика, технологии и смысл.</span></p>
+         <p className="hero-description">Создаю современные сайты и цифровые впечатления для бизнеса, объединяя дизайн, технологии и удобство</p>
          <div className="hero-actions"><a className="button light" href="#projects">Мои проекты <ArrowUpRight size={17}/></a><a className="text-link" href="#contact">Обсудить проект <ArrowUpRight size={16}/></a></div>
        </motion.div>
      </div>
      <div className="hero-visual" ref={anchor}>
-       <div className="visual-coordinate" aria-hidden="true"><span>01 / PROCEDURAL FORM</span><span>REALTIME · INTERACTIVE</span></div>
+       <div className="visual-coordinate" aria-hidden="true"><span>01 / COSMIC PORTAL</span><span>ENERGY / DEPTH / MOTION</span></div>
      </div>
    </div>
    <div className="hero-foot"><a href="#about"><ArrowDown size={15}/> ПРОКРУТИТЕ, ЧТОБЫ ИССЛЕДОВАТЬ</a><button onClick={()=>setPaused(!paused)} aria-label={paused?'Продолжить анимации':'Приостановить анимации'} aria-pressed={paused}>{paused?<Play size={13}/>:<Pause size={13}/>} {paused?'PLAY':'PAUSE'} / MOTION</button></div>

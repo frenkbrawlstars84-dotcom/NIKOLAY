@@ -10,7 +10,7 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
   state = { failed: false }
   static getDerivedStateFromError() { return { failed: true } }
   componentDidCatch() { this.props.onFailure() }
-  render() { return this.state.failed ? <SceneFallback /> : this.props.children }
+  render() { return this.state.failed ? null : this.props.children }
 }
 
 export default function SceneLayer({ reduced, paused, anchor, onStatus, deferred = false }: {
@@ -34,8 +34,9 @@ export default function SceneLayer({ reduced, paused, anchor, onStatus, deferred
     return () => clearTimeout(timeout)
   }, [status, fail, deferred])
   return <div className="scene-layer" data-scene-status={status}>
-    {deferred || status === 'fallback' ? <SceneFallback /> : <SceneBoundary onFailure={fail}>
-      <Suspense fallback={<SceneFallback />}><Scene reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
+    {!deferred && status !== 'fallback' && <SceneBoundary onFailure={fail}>
+      <Suspense fallback={null}><Scene reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
     </SceneBoundary>}
+    <div className="hero-portal-placeholder" aria-hidden={status==='ready'}><SceneFallback/></div>
   </div>
 }
