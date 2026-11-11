@@ -15,7 +15,7 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
     const pointer = { x: 0, y: 0 }, drift = { x: 0, y: 0 }
     let seed = 48271
     const random = () => { seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646 }
-    const stars = Array.from({ length: 150 }, () => ({ x: random(), y: random(), depth: .25 + random() * .75, phase: random() * Math.PI * 2, size: .3 + random() * .9 }))
+    const stars = Array.from({ length: 260 }, () => ({ x: random(), y: random(), depth: .25 + random() * .75, phase: random() * Math.PI * 2, size: .3 + random() * .9 }))
     const cloud = (rgb: number[], offset: number) => {
       const size = 192, texture = document.createElement('canvas')
       texture.width = texture.height = size
@@ -42,7 +42,7 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       paint.putImageData(pixels, 0, 0)
       return texture
     }
-    const blueCloud = cloud([76, 78, 83], .4), violetCloud = cloud([87, 84, 89], 1.8)
+    const blueCloud = cloud([49, 81, 135], .4), violetCloud = cloud([94, 59, 128], 1.8)
     const draw = () => {
       ctx.clearRect(0, 0, width, height)
       if (!reduced && !paused) { drift.x += (pointer.x - drift.x) * .035; drift.y += (pointer.y - drift.y) * .035 }
@@ -59,14 +59,14 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
         ctx.drawImage(violetCloud, -width * .6, -height * .15, width * .85, height * 1.1)
       }
       ctx.restore()
-      const count = low ? 55 : stars.length
+      const count = low ? 105 : stars.length
       for (let i = 0; i < count; i++) {
         const s = stars[i], parallax = reduced ? 0 : scroll * s.depth * 30
         const x = (s.x * width + drift.x * s.depth * 18 + Math.sin(time * .015 + s.phase) * 3 + width) % width
-        const y = (s.y * height - parallax + drift.y * s.depth * 12 + height * 10) % height
+        const y = (s.y * height - parallax - time*s.depth*1.3 + drift.y * s.depth * 12 + height * 10) % height
         const centerShield = x > width * .15 && x < width * .59 ? .4 : 1
         const twinkle = reduced ? .8 : .72 + Math.sin(time * .25 + s.phase) * .18
-        ctx.fillStyle = `rgba(220,222,226,${(.16 + s.depth * .45) * twinkle * centerShield})`
+        ctx.fillStyle = `rgba(220,222,226,${(.21 + s.depth * .5) * twinkle * centerShield})`
         ctx.beginPath(); ctx.arc(x, y, s.size * (low ? .8 : 1), 0, Math.PI * 2); ctx.fill()
         if (!low && i % 31 === 0) {
           ctx.strokeStyle = `rgba(215,218,224,${.09 * twinkle})`; ctx.lineWidth = .5
@@ -97,11 +97,13 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       if (!document.hidden && !reduced && !paused && !focus.current) { last = performance.now(); frame = requestAnimationFrame(tick) }
     }
     const move = (e: PointerEvent) => { if (!reduced && !paused && e.pointerType !== 'touch') { pointer.x = e.clientX / width - .5; pointer.y = e.clientY / height - .5 } }
+    const scrollDraw = () => { if (!document.hidden && focus.current) draw() }
+    window.addEventListener('scroll', scrollDraw, { passive: true })
     wake.current=visibility
     resize(); visibility()
     window.addEventListener('resize', resize, { passive: true }); window.addEventListener('pointermove', move, { passive: true })
     document.addEventListener('visibilitychange', visibility)
-    return () => {wake.current=null;cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
+    return () => {wake.current=null;window.removeEventListener('scroll', scrollDraw);cancelAnimationFrame(frame); window.removeEventListener('resize', resize); window.removeEventListener('pointermove', move); document.removeEventListener('visibilitychange', visibility) }
   }, [reduced, paused])
   return <canvas className="ambient-background" ref={canvas} aria-hidden="true" />
 }

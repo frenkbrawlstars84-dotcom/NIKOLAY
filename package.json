@@ -12,7 +12,8 @@
     "profile:scenes": "node scripts/profile-scenes.mjs",
     "test:browser": "npm run test:models && npm run build && node scripts/check-browser.mjs",
     "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/tonTravel.test.ts",
-    "test:rubik": "node --experimental-strip-types --test tests/rubik.test.ts"
+    "test:rubik": "node --experimental-strip-types --test tests/rubik.test.ts",
+    "test:intro": "node scripts/check-intro.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

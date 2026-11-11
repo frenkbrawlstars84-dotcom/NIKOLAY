@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { motion, MotionConfig } from 'motion/react'
 import useReducedMotion from './useReducedMotion'
@@ -7,6 +7,7 @@ import './style.css'
 import './cinematic.css'
 import './cosmic.css'
 import './objects.css'
+import CosmicIntro, { shouldPlayIntro } from './CosmicIntro'
 import AmbientBackground from './AmbientBackground'
 import { contacts } from './config'
 import FluidText from './FluidText'
@@ -24,7 +25,7 @@ function App(){
  const toggle=(i:number)=>setDemo(v=>v.map((x,n)=>n===i?!x:x))
  useCinematicFlow(root,anchor,progress,reduced,sceneStatus==='ready')
  const telegram=contacts.telegramUrl
- return <MotionConfig reducedMotion="user"><div ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
+ return <MotionConfig reducedMotion="user"><div ref={root} className={`site-root visual-status-${sceneStatus} portal-revealed`}><AmbientBackground reduced={reduced} paused={paused}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening"><div className="experience-track"><div className="experience-pin">
  <div className="experience-art"><SceneLayer progress={progress} reduced={reduced} paused={paused} anchor={anchor} onStatus={setSceneStatus}/></div>
  <section className="hero shell">
@@ -64,4 +65,13 @@ function App(){
    </div>
  </div></section></main><footer className="shell footer"><a className="brand" href="#">NIKOLAY<span>✳</span></a><span>СОЗДАНО НА ПЕРЕСЕЧЕНИИ ДИЗАЙНА И ТЕХНОЛОГИЙ</span><a href="#">НАВЕРХ <ArrowUpRight size={14}/></a></footer></div></MotionConfig>
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)
+function Universe() {
+ const reduced=useReducedMotion()
+ const [intro,setIntro]=useState(shouldPlayIntro)
+ const [entered,setEntered]=useState(!intro)
+ useEffect(()=>{if(reduced){setIntro(false);setEntered(true)}},[reduced])
+ const reveal=useCallback(()=>setEntered(true),[])
+ const complete=useCallback(()=>{setEntered(true);setIntro(false)},[])
+ return <>{(entered||reduced)&&<App/>}{intro&&!reduced&&<CosmicIntro onReveal={reveal} onComplete={complete}/>}</>
+}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Universe/></React.StrictMode>)

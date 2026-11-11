@@ -10,6 +10,7 @@ const rayFragment = `
   uniform float uTime;
   uniform float uAspect;
   uniform vec2 uResolution;
+  uniform float uPortal;
   varying vec2 vUv;
   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
   float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
@@ -32,7 +33,7 @@ const rayFragment = `
   }
   vec3 sky(vec3 d){
     vec2 angular=vec2(atan(d.x,-d.z),asin(clamp(d.y,-1.,1.)));
-    vec2 parallax=uEye.xy*.0008+vec2(uEye.z-31.4)*vec2(.00002,.00005);
+    vec2 parallax=uEye.xy*.0008+vec2(uEye.z-31.4)*mix(vec2(.00002,.00005),vec2(.0014,.0006),uPortal);
     float farStars=starLayer(angular+parallax*.3,120.,0.);
     float deepStars=starLayer(angular+parallax,255.,37.);
     return vec3(.00025,.0003,.0004)+vec3(farStars*.8+deepStars*.4);
@@ -91,7 +92,9 @@ const rayFragment = `
     float light=direct*.82+lensed*.68+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 emission=vec3(.92*(1.-exp(-light*2.05)));
+    vec3 tint=mix(vec3(1.),vec3(1.8,.91,.42),uPortal);
+    vec3 emission=vec3(.92)*(1.-exp(-light*2.05*tint));
+    emission+=vec3(1.,.38,.12)*exp(-abs(impact-critical)*2.8)*.045*uPortal*outside;
     gl_FragColor=vec4(background+emission,1);
   }
 
@@ -114,19 +117,19 @@ const bloomFragment = `
     gl_FragColor=vec4(color+glow,uOpacity);
   }
 `
-export default function BlackHole({ progress, clock, low, onUnavailable }: { progress: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
+export default function BlackHole({ progress, clock, low, onUnavailable, portal = false }: { portal?: boolean; progress: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
   const mesh = useRef<THREE.Mesh>(null)
   const { gl, camera, size, viewport } = useThree()
   const checked = useRef(false)
   const resources = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2,2)
     const target = new THREE.WebGLRenderTarget(1,1,{ depthBuffer:false, stencilBuffer:false, minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter })
-    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:low?{LOW_QUALITY:1}:{}, depthTest:false, depthWrite:false, uniforms:{uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
+    const ray = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:rayFragment, defines:low?{LOW_QUALITY:1}:{}, depthTest:false, depthWrite:false, uniforms:{uPortal:{value:portal?1:0},uEye:{value:new THREE.Vector3(0,0,31.4)},uTime:{value:0},uAspect:{value:1},uResolution:{value:new THREE.Vector2(1,1)}} })
     const composite = new THREE.ShaderMaterial({ vertexShader:fullscreenVertex, fragmentShader:bloomFragment, defines:low?{LOW_QUALITY:1}:{}, depthTest:false,depthWrite:false,transparent:true,uniforms:{uScene:{value:target.texture},uTexel:{value:new THREE.Vector2(1,1)},uOpacity:{value:0}} })
     const scene = new THREE.Scene();scene.add(new THREE.Mesh(geometry,ray))
     const view = new THREE.OrthographicCamera(-1,1,1,-1,0,1)
     return {geometry,target,ray,composite,scene,view}
-  },[low])
+  },[low,portal])
   useLayoutEffect(()=>{
     // The base scene matches the actual canvas, including on large displays.
     // Only bloom is soft; the central silhouette and gas are never upscaled.
@@ -140,12 +143,12 @@ export default function BlackHole({ progress, clock, low, onUnavailable }: { pro
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
   useFrame(()=>{
-    const p=progress.current,active=p>.26&&p<.999
+    const p=progress.current,active=portal||(p>.26&&p<.999)
     if(mesh.current)mesh.current.visible=active
     if(!active)return
-    resources.ray.uniforms.uEye.value.copy(camera.position);resources.ray.uniforms.uEye.value.z+=24
+    resources.ray.uniforms.uEye.value.copy(camera.position);if(!portal)resources.ray.uniforms.uEye.value.z+=24
     resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
-    resources.composite.uniforms.uOpacity.value=THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
+    resources.composite.uniforms.uOpacity.value=portal?1:THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
     const previous=gl.getRenderTarget()
     try{
       gl.setRenderTarget(resources.target)
