@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
+import { checkIntro } from './check-intro.mjs'
 import { checkObjects } from './check-objects.mjs'
 
 // Regression: production alone missed a StrictMode cleanup crash in npm run dev.
@@ -21,7 +22,7 @@ async function serve(preview, port) {
   throw new Error(`Server did not start: ${output}`)
 }
 async function content(page, url) {
-  if (url) await page.goto(url)
+  if (url) { await page.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1')); await page.goto(url) }
   await page.locator('h1').waitFor()
   await page.evaluate(() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0) })
   await page.waitForFunction(() => Number(getComputedStyle(document.querySelector('.hero-type')).opacity) > .99)
@@ -43,7 +44,7 @@ async function healthy(page, url) {
   assert.equal(await page.locator('.experience-art canvas').evaluate(e => getComputedStyle(e).pointerEvents), 'none')
 }
 async function fallback(page, url) {
-  if (url) await page.goto(url)
+  if (url) { await page.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1')); await page.goto(url) }
   await page.locator('[data-scene-status="fallback"]').waitFor({ timeout: 15000 })
   await content(page)
   assert(await page.locator('.scene-fallback').isVisible())
@@ -80,56 +81,32 @@ let browser
 try {
   const dev = await serve(false, 5175), preview = await serve(true, 4175)
   browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined, args: ['--enable-unsafe-swiftshader'] })
+  await checkIntro(browser, preview)
   for (const url of [dev, preview]) {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, hasTouch: true })
     await page.addInitScript(() => {
-      window.__sceneTargets = []
-      window.__sampleTon = false
-      window.__tonLight = null
-      for (const method of ['drawElements', 'drawArrays']) {
-        const draw = WebGL2RenderingContext.prototype[method]
-        WebGL2RenderingContext.prototype[method] = function(...args) {
-          const result = draw.apply(this,args)
-          if (window.__sampleTon && this.canvas.closest('.experience-art') && this.getParameter(this.FRAMEBUFFER_BINDING)) {
-            const viewport = this.getParameter(this.VIEWPORT), width = Math.floor(viewport[2] * .6)
-            const pixels = new Uint8Array(width * 4)
-            this.readPixels(Math.floor(viewport[2] * .2), Math.floor(viewport[3] * .48), width, 1, this.RGBA, this.UNSIGNED_BYTE, pixels)
-            window.__tonLight = pixels.some((value,i) => i % 4 !== 3 && value > 64)
-            window.__sampleTon = false
-          }
-          return result
-        }
-      }
-      const original = WebGL2RenderingContext.prototype.texImage2D
-      WebGL2RenderingContext.prototype.texImage2D = function(...args) {
-        if (this.canvas.closest('.experience-art') && args.length === 9 && args[3] > 1 && args[4] > 1) window.__sceneTargets.push([args[3], args[4]])
-        return original.apply(this,args)
-      }
+      const original=WebGL2RenderingContext.prototype.shaderSource
+      WebGL2RenderingContext.prototype.shaderSource=function(shader,source){if(source.includes('TON_RAY_SCENE'))this.canvas.dataset.hasBlackHole='true';return original.call(this,shader,source)}
     })
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
     await healthy(page, url)
     for (let i = 0; i < 3; i++) { await page.reload(); await healthy(page) }
-    // Slow, fast and reversed native scrolling through TON 618.
+    // Slow, fast and reversed native scrolling through the energy portal.
     const phase = async value => page.evaluate(v => {
       const rect = document.querySelector('.experience-track').getBoundingClientRect()
       window.scrollTo(0, scrollY + rect.top + (rect.height - innerHeight) * v)
     }, value)
-    await page.evaluate(() => { window.__sampleTon = true })
     for (const value of [.32, .53, .68, .8, .92]) { await phase(value); await page.waitForTimeout(550) }
-    assert.equal(await page.evaluate(() => window.__tonLight), true, 'TON actually draws luminous gas after StrictMode replay')
     assert.equal(await page.locator('.scene-layer').getAttribute('data-scene-status'), 'ready')
-    assert(await page.evaluate(() => {
-      const canvas = document.querySelector('.experience-art canvas')
-      return window.__sceneTargets.some(([w,h]) => w === canvas.width && h === canvas.height)
-    }), 'TON base image renders at the full canvas resolution')
+    assert.equal(await page.locator('.experience-art canvas').getAttribute('data-has-black-hole'),null,'Scroll portal never compiles or draws a black-hole shader')
+    assert.equal(await page.locator('.opening-intro,.ton-caption,.horizon-shade').count(),0)
     assert.equal(await page.locator('.opening').evaluate(e => e.nextElementSibling.id), 'projects')
     assert.equal(await page.locator('#about').count(), 1)
     for (const value of [.1, .8, .2, .95, 1, 0]) { await phase(value); await page.waitForTimeout(30) }
     await page.waitForFunction(() => !document.querySelector('.hero-copy').inert)
     await page.waitForTimeout(800)
-    assert.equal(await page.locator('.horizon-shade').evaluate(e => Number(getComputedStyle(e).opacity)), 0)
     await projectNavigation(page, url, 'Открыть сайт NEXORA DIGITAL')
     await page.setViewportSize({ width: 390, height: 844 })
     await projectNavigation(page, url, 'Посмотреть сайт', true)
@@ -254,14 +231,12 @@ try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
     await page.addInitScript(() => {
       const original = WebGL2RenderingContext.prototype.shaderSource
-      WebGL2RenderingContext.prototype.shaderSource = function(shader, source) { return original.call(this, shader, source.includes('TON_RAY_SCENE') ? 'INVALID_SHADER' : source) }
+      WebGL2RenderingContext.prototype.shaderSource = function(shader, source) { return original.call(this, shader, source.includes('attribute float aSide;') ? 'INVALID_SHADER' : source) }
     })
-    await healthy(page, preview)
-    await page.evaluate(() => { const r = document.querySelector('.experience-track').getBoundingClientRect(); window.scrollTo(0, scrollY + r.top + (r.height - innerHeight) * .66) })
-    await fallback(page)
-    assert.equal(await page.locator('.horizon-shade').evaluate(e => getComputedStyle(e).display), 'none')
+    await fallback(page, preview)
+    assert.equal(await page.locator('.opening-intro,.horizon-shade').count(),0)
     await page.close()
-    console.log('PASS deferred TON shader failure: cinematic shade disabled, visible HTML and contacts survive')
+    console.log('PASS portal shader failure: visible HTML and contacts survive')
   }
   await checkObjects(browser, preview)
   console.log('All browser regressions passed.')

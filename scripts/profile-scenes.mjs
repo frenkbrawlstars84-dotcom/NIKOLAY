@@ -10,6 +10,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1})
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
   await page.addInitScript(()=>{
+    sessionStorage.setItem('nikolay:intro:seen:v1','1')
     window.__profile={selector:null,frames:[],raf:[],longTasks:[],draws:0,start:0}
     for(const method of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){
       const original=WebGL2RenderingContext.prototype[method]
@@ -36,9 +37,9 @@ try{
     const after=await metrics();return{...result,scriptMs:(after.ScriptDuration-before.ScriptDuration)*1000,layoutMs:(after.LayoutDuration-before.LayoutDuration)*1000,taskMs:(after.TaskDuration-before.TaskDuration)*1000}
   }
   await page.evaluate(()=>{const r=document.querySelector('.experience-track').getBoundingClientRect();scrollTo(0,scrollY+r.top+(r.height-innerHeight)*.64)});await page.waitForTimeout(1200)
-  const ton=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-ton-${tag}.png`)})
+  const portal=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-portal-${tag}.png`)})
   await page.locator('.accent-cube').scrollIntoViewIfNeeded();await page.locator('.accent-cube[data-accent-status="ready"]').waitFor({timeout:20000});await page.waitForTimeout(1000)
   const cube=await sample('.accent-cube');await page.locator('.accent-cube').screenshot({path:join(output,`nikolay-cube-${tag}.png`)})
   const resources=await page.evaluate(()=>{const entries=performance.getEntriesByType('resource').filter(e=>e.name.startsWith(location.origin));return {requests:entries.length,decodedBytes:entries.reduce((s,e)=>s+e.decodedBodySize,0),transferBytes:entries.reduce((s,e)=>s+e.transferSize,0)}})
-  const report={tag,renderer,ton,cube,resources,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
+  const report={tag,renderer,portal,cube,resources,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
 }finally{await browser.close()}

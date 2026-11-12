@@ -1,5 +1,4 @@
-// Progress here belongs to the flight after the protected hero introduction.
-export function journeyProgress(pageProgress: number) { return Math.max(0, Math.min(1, (pageProgress - .28) / .72)) }
+// Finite camera path for the autonomous opening intro only.
 const keys = [0, .25, .55, .7, 1]
 const distances = [31.4, 26, 12, -1.4, -16]
 const secants = keys.slice(1).map((key, i) => (distances[i + 1] - distances[i]) / (key - keys[i]))

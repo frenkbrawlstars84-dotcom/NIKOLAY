@@ -11,7 +11,8 @@
     "check:captures": "node scripts/check-project-captures.mjs",
     "profile:scenes": "node scripts/profile-scenes.mjs",
     "test:browser": "npm run test:models && npm run build && node scripts/check-browser.mjs",
-    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/tonTravel.test.ts tests/tactile.test.ts",
+    "test:models": "node --experimental-strip-types --test tests/rubik.test.ts tests/rubikRig.test.ts tests/sculptures.test.ts tests/tonTravel.test.ts tests/tactile.test.ts tests/intro.test.ts",
+    "test:intro": "npm run build && node scripts/check-intro.mjs",
     "test:tactile": "npm run build && node scripts/check-tactile.mjs",
     "test:rubik": "node --experimental-strip-types --test tests/rubik.test.ts"
   },

@@ -61,12 +61,5 @@
   .contact-bottom>p{max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.accent-object{animation:none!important;transition:none!important}}
-/* TON 618 stays inside the existing pinned passage and never covers the hero copy. */
-.ton-caption{position:absolute;left:0;right:0;bottom:15%;z-index:3;text-align:center;opacity:0;pointer-events:none}
-.ton-caption strong{display:block;font-size:11px;letter-spacing:5px;font-weight:400;color:#eeeeee}
-.ton-caption span{display:inline-block;margin-top:12px;padding:7px 10px;background:#0009;font-size:6px;letter-spacing:2.5px;color:#aaa}
-.horizon-shade{position:absolute;inset:0;background:#000;z-index:1;opacity:0;pointer-events:none}
 .work{perspective:1400px}
 .accent-cube .accent-stage::before{background:radial-gradient(ellipse,#ffffff0c,transparent 68%)}
-@media(max-height:650px),(prefers-reduced-motion:reduce){.ton-caption,.horizon-shade{display:none}}
-.site-root:not(.visual-status-ready) .ton-caption,.site-root:not(.visual-status-ready) .horizon-shade{display:none}

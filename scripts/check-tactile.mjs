@@ -19,6 +19,7 @@ try {
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1440,height:1000},hasTouch:mobile})
   currentPage=page
   const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error(e.stack)});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error(m.text())}})
+  await page.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1'))
   await page.goto(url);await page.locator('[data-scene-status="ready"]').waitFor();await page.evaluate(()=>document.documentElement.style.scrollBehavior='auto')
   const press=async locator=>mobile?locator.tap():locator.click()
   const check=async locator=>{

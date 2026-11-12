@@ -1,12 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cameraDistance, journeyProgress } from '../src/tonTravel.ts'
+import { cameraDistance } from '../src/tonTravel.ts'
 
-test('the flight starts after the readable hero and has bounded endpoints', () => {
-  assert.equal(journeyProgress(-1), 0)
-  assert.equal(journeyProgress(.28), 0)
-  assert.equal(journeyProgress(.64), .5)
-  assert.equal(journeyProgress(2), 1)
+test('the autonomous intro camera has bounded endpoints', () => {
   assert.equal(cameraDistance(-1), 31.4)
   assert.equal(cameraDistance(2), -16)
 })

@@ -59,11 +59,7 @@ export default function useCinematicFlow(root: RefObject<HTMLDivElement | null>,
           .fromTo('.experience-art', { clipPath: clip }, { clipPath: 'inset(0px 0px 0px 0px)', duration: .12, ease: 'power2.inOut' }, .28)
           .fromTo('.passage-guides', { opacity: 0 }, { opacity: 1, duration: .15 }, .36)
           .fromTo('.passage-meter i', { scaleX: 0 }, { scaleX: 1, duration: .62, ease: 'none' }, .38)
-          .fromTo('.ton-caption', { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .08 }, .34)
-          .to('.ton-caption', { opacity: 0, duration: .035 }, .70)
-          .fromTo('.horizon-shade', { opacity: 0 }, { opacity: 1, duration: .018, ease: 'power2.in' }, .732)
-          .to('.horizon-shade', { opacity: 0, duration: .04, ease: 'power2.out' }, .91)
-          .fromTo('.passage-copy', { clipPath: 'inset(100% 0% 0% 0%)', y: 30 }, { clipPath: 'inset(0% 0% 0% 0%)', y: 0, duration: .04, ease: 'power2.out' }, .91)
+          .fromTo('.passage-copy', { clipPath: 'inset(100% 0% 0% 0%)', y: 30 }, { clipPath: 'inset(0% 0% 0% 0%)', y: 0, duration: .04, ease: 'power2.out' }, .85)
           .to('.experience-art', { opacity: 0, duration: .045 }, .955)
         return () => { const control=anchorElement.querySelector<HTMLButtonElement>('.portal-interaction');if(control){control.disabled=false;control.style.pointerEvents='auto'} copy.inert = false; copy.removeAttribute('aria-hidden'); progress.current = 0 }
       })

@@ -165,12 +165,12 @@ export default function BlackHole({ progress, clock, low, onUnavailable }: { pro
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
   useFrame(()=>{
-    const p=progress.current,active=p>.32&&p<.999
+    const p=progress.current,active=p<1
     if(mesh.current)mesh.current.visible=active
     if(!active)return
     resources.ray.uniforms.uEye.value.copy(camera.position);resources.ray.uniforms.uEye.value.z+=24
     resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
-    resources.composite.uniforms.uOpacity.value=THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
+    resources.composite.uniforms.uOpacity.value=1
     const previous=gl.getRenderTarget()
     try{
       gl.setRenderTarget(resources.target)

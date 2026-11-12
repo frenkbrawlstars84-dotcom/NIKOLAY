@@ -5,8 +5,6 @@ import * as THREE from 'three'
 import useTactile from './useTactile'
 import SceneFallback from './SceneFallback'
 import CanvasHealth from './CanvasHealth'
-import BlackHole from './BlackHole'
-import { journeyProgress, cameraDistance } from './tonTravel'
 import useSceneBudget from './useSceneBudget'
 
 type IntroFrame = { x: number; y: number; width: number; height: number }
@@ -23,7 +21,6 @@ const vertex = `
   varying vec3 vViewPosition;
   varying float vLight;
   varying float vDepth;
-  varying vec3 vWorldPosition;
   void main() {
     float t = uTime * .16;
     float unfurl = smoothstep(.10, .48, uProgress);
@@ -42,14 +39,10 @@ const vertex = `
     float angle = aStrand * 6.283185 + aPath * 1.25 + sin(aPath * 5. + aStrand * 12.) * .12;
     float radius = 2.7 + sin(aStrand * 18.85) * .32 + sin(aPath * 8. + aStrand * 6.28) * .16;
     vec3 corridor = vec3(cos(angle) * radius, sin(angle) * radius, 3. - aPath * 35.);
-    float lens = exp(-abs(corridor.z + 24.) * .2) * smoothstep(.4, .75, uProgress);
-    corridor.xy *= 1. + lens * .27;
-    corridor.x += sin(angle + corridor.z * .12) * lens * .22;
     p = mix(p, corridor, unfurl);
     vLight = .3 + .7 * pow(.5 + .5 * sin(aStrand * 28. + aPath * 14. + t), 2.);
     vec4 viewPosition = modelViewMatrix * vec4(p * uReveal, 1.);
     vViewPosition=viewPosition.xyz;
-    vWorldPosition=(modelMatrix*vec4(p*uReveal,1.)).xyz;
     vDepth = -viewPosition.z;
     gl_Position = projectionMatrix * viewPosition;
   }
@@ -60,25 +53,16 @@ const fragment = `
   varying vec3 vViewPosition;
   varying float vLight;
   varying float vDepth;
-  varying vec3 vWorldPosition;
   void main() {
     float fog = smoothstep(.15, 1.6, vDepth) * (1. - smoothstep(17., 35., vDepth));
-    float exitFade = 1. - smoothstep(.48, .62, uProgress);
+    float exitFade = 1. - smoothstep(.84, 1., uProgress);
     float weight = mix(.62, .17, smoothstep(.2, .46, uProgress));
-    float hidden=0.;
-    if(uProgress>.33&&vWorldPosition.z< -21.8){
-      vec3 eye=cameraPosition-vec3(0,0,-24.);
-      vec3 sight=vWorldPosition-cameraPosition;float distance=length(sight);sight/=max(distance,.001);
-      float impact=length(cross(eye,sight));
-      float entry=-dot(eye,sight)-sqrt(max(4.2025-impact*impact,0.));
-      hidden=step(0.,entry)*step(entry,distance)*(1.-smoothstep(2.,2.1,impact))*smoothstep(.33,.52,uProgress);
-    }
     vec3 normal=normalize(cross(dFdx(vViewPosition),dFdy(vViewPosition)));
     float facing=abs(dot(normal,normalize(-vViewPosition)));
     float studio=pow(abs(dot(normal,normalize(vec3(-.6,.8,1.)))),7.);
     float rim=pow(1.-facing,2.);
     vec3 silver=mix(vec3(.15,.23,.36),vec3(.84,.91,1.),clamp(studio*.8+rim*.55+vLight*.38,0.,1.));
-    gl_FragColor = vec4(silver+vec3(.24,.45,.8)*uFlash*.45, (.8+weight*.2)*fog*exitFade*(1.-hidden));
+    gl_FragColor = vec4(silver+vec3(.24,.45,.8)*uFlash*.45, (.8+weight*.2)*fog*exitFade);
   }
 `
 const particleVertex = `
@@ -88,20 +72,16 @@ const particleVertex = `
   attribute float aSeed;
   varying float vAlpha;
   varying float vTip;
-  varying vec3 vWorldPosition;
   void main() {
     vec3 p = position;
     float flight = smoothstep(.16, .55, uProgress);
     p.xy += vec2(sin(p.z + uTime * .07), cos(p.z * .3 + uTime * .06)) * .025;
     p.z += aTip * (.015 + flight * (.2 + aSeed * .45));
-    float lens = exp(-abs(p.z + 24.) * .21) * smoothstep(.45, .8, uProgress);
-    p.xy *= 1. + lens * .2;
     vec4 mv = modelViewMatrix * vec4(p, 1.);
     float depth = -mv.z;
-    vAlpha = (.1 + .9 * flight) * (1. - smoothstep(.68, .86, uProgress));
+    vAlpha = (.1 + .9 * flight) * (1. - smoothstep(.88, 1., uProgress));
     vAlpha *= smoothstep(.2, 1.2, depth) * (1. - smoothstep(35., 65., depth));
     vTip = aTip;
-    vWorldPosition=(modelMatrix*vec4(p,1.)).xyz;
     gl_Position = projectionMatrix * mv;
   }
 `
@@ -109,21 +89,12 @@ const particleFragment = `
   uniform float uProgress;
   varying float vAlpha;
   varying float vTip;
-  varying vec3 vWorldPosition;
   void main() {
-    float hidden=0.;
-    if(uProgress>.33&&vWorldPosition.z< -21.8){
-      vec3 eye=cameraPosition-vec3(0,0,-24.);
-      vec3 sight=vWorldPosition-cameraPosition;float distance=length(sight);sight/=max(distance,.001);
-      float impact=length(cross(eye,sight));
-      float entry=-dot(eye,sight)-sqrt(max(4.2025-impact*impact,0.));
-      hidden=step(0.,entry)*step(entry,distance)*(1.-smoothstep(2.,2.1,impact))*smoothstep(.33,.52,uProgress);
-    }
-    gl_FragColor = vec4(.88, .89, .92, vAlpha * (.2 + .8 * vTip) * .18*(1.-hidden));
+    gl_FragColor = vec4(.88, .89, .92, vAlpha * (.2 + .8 * vTip) * .18);
   }
 `
 
-function Sculpture({ progress, reduced, paused, low, frame, onUnavailable, anchor }: Omit<SceneProps, 'onReady'> & { low: boolean; frame: RefObject<IntroFrame> }) {
+function Sculpture({ progress, reduced, paused, low, frame, anchor }: Omit<SceneProps, 'onReady'|'onUnavailable'> & { low: boolean; frame: RefObject<IntroFrame> }) {
   const interaction=useTactile(reduced,'Металлический портал: нажмите для раскрытия лент; повторно — собрать. Прокрутите для погружения',anchor,()=>progress.current<.18)
   const object = useRef<THREE.Group>(null)
   const { invalidate, camera, size } = useThree()
@@ -197,7 +168,6 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable, ancho
     smoothedProgress.current = reduced ? 0 : THREE.MathUtils.damp(smoothedProgress.current, progress.current, 10, dt)
     const p = smoothedProgress.current
     const center = THREE.MathUtils.smoothstep(p, .16, .4)
-    const travel = journeyProgress(p)
     material.uniforms.uMorph.value=interaction.current.value
     material.uniforms.uHover.value=interaction.current.hover
     material.uniforms.uFlash.value=interaction.current.flash
@@ -211,7 +181,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable, ancho
     const worldWidth = worldHeight * size.width / size.height
     const introScale = Math.min(frame.current.width * worldWidth, frame.current.height * worldHeight) / 5.2
     if (object.current) {
-      object.current.visible = p < .62
+      object.current.visible = p < .999
       object.current.position.set(frame.current.x * worldWidth * (1 - center), frame.current.y * worldHeight * (1 - center), 0)
       object.current.scale.setScalar(THREE.MathUtils.lerp(introScale, 1, center))
       object.current.rotation.set(
@@ -220,11 +190,11 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable, ancho
         -.35 * (1 - center),
       )
     }
-    camera.position.z = cameraDistance(travel) - 24
-    camera.position.x = low ? 0 : Math.sin(travel * Math.PI) * .08
-    camera.position.y = Math.sin(travel * Math.PI) * .04
+    camera.position.z = THREE.MathUtils.lerp(7.4,-25,THREE.MathUtils.smoothstep(p,.2,1))
+    camera.position.x = low ? 0 : Math.sin(p * Math.PI) * .08
+    camera.position.y = Math.sin(p * Math.PI) * .04
   })
-  return <><group ref={object}><mesh geometry={geometry} material={material} frustumCulled={false} renderOrder={20}/></group><lineSegments geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={21}/><BlackHole progress={smoothedProgress} clock={clock} low={low} onUnavailable={onUnavailable}/></>
+  return <><group ref={object}><mesh geometry={geometry} material={material} frustumCulled={false} renderOrder={20}/></group><lineSegments geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={21}/></>
 }
 
 export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
@@ -267,8 +237,8 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
     }
   }, [anchor])
   return <div ref={host} className="scene-host" data-scene-running={ownsFrame && !reduced && !paused && visible && inView}>{supported ? <Canvas
-    aria-label="Спираль, пространственный туннель и проход через чёрную дыру TON 618"
+    aria-label="Энергетический портал и пространственный проход к проектам"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView || !ownsFrame ? 'demand' : 'always'}
     gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
+  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} /></Canvas> : <SceneFallback />}</div>
 }

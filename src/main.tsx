@@ -7,6 +7,7 @@ import './style.css'
 import './cinematic.css'
 import './cosmic.css'
 import './objects.css'
+import IntroGate from './IntroGate'
 import AmbientBackground from './AmbientBackground'
 import { contacts } from './config'
 import FluidText from './FluidText'
@@ -47,7 +48,7 @@ function App(){
    </div>
    <div className="hero-foot"><a href="#about"><ArrowDown size={15}/> ПРОКРУТИТЕ, ЧТОБЫ ИССЛЕДОВАТЬ</a><button onClick={()=>setPaused(!paused)} aria-label={paused?'Продолжить анимации':'Приостановить анимации'} aria-pressed={paused}>{paused?<Play size={13}/>:<Pause size={13}/>} {paused?'PLAY':'PAUSE'} / MOTION</button></div>
  </section>
- <div className="ton-caption" aria-hidden="true"><strong>TON 618</strong><span>ЗА ПРЕДЕЛАМИ ВИДИМОГО</span></div><div className="horizon-shade" aria-hidden="true"/><div className="passage-guides" aria-hidden="true"><span>SCENE 01 → SCENE 02</span><span>SCROLL TO TRAVEL</span><div className="passage-meter"><i/></div></div>
+ <div className="passage-guides" aria-hidden="true"><span>SCENE 01 → SCENE 02</span><span>SCROLL TO TRAVEL</span><div className="passage-meter"><i/></div></div>
  <div className="passage-copy"><span>ФОРМА МЕНЯЕТСЯ. СМЫСЛ ОСТАЁТСЯ.</span><p>Из темноты —<br/><em>к новым идеям.</em></p></div>
  </div></div>
  </div>
@@ -65,4 +66,4 @@ function App(){
    </div>
  </div></section></main><footer className="shell footer"><a className="brand" href="#">NIKOLAY<span>✳</span></a><span>СОЗДАНО НА ПЕРЕСЕЧЕНИИ ДИЗАЙНА И ТЕХНОЛОГИЙ</span><a href="#">НАВЕРХ <ArrowUpRight size={14}/></a></footer></div></MotionConfig>
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)
+createRoot(document.getElementById('root')!).render(<React.StrictMode><IntroGate><App/></IntroGate></React.StrictMode>)

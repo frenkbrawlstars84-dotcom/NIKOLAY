@@ -17,6 +17,7 @@ export async function checkObjects(browser,url) {
     const clear=proto.clear
     proto.clear=function(mask){const key=kind(this.canvas);if(key&&!this.getParameter(this.FRAMEBUFFER_BINDING))window.__objects.frames[key]=(window.__objects.frames[key]||0)+1;return clear.call(this,mask)}
   })
+  await page.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1'))
   await page.goto(url)
   await page.evaluate(()=>document.documentElement.style.scrollBehavior='auto')
   for(const kind of ['signal','glass']){
@@ -61,6 +62,7 @@ export async function checkObjects(browser,url) {
   await page.close()
   const mobile=await browser.newPage({viewport:{width:390,height:844}})
   await mobile.addInitScript(()=>Object.defineProperty(navigator,'hardwareConcurrency',{get:()=>2}))
+  await mobile.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1'))
   await mobile.goto(url);await mobile.locator('[data-scene-status="ready"]').waitFor();await mobile.evaluate(()=>document.documentElement.style.scrollBehavior='auto')
   for(const kind of ['screens','signal','glass']){
     const selector=kind==='screens'?'.project-screens':`.accent-${kind}`
@@ -80,6 +82,7 @@ export async function checkObjects(browser,url) {
   await mobile.close()
   const broken=await browser.newPage()
   await broken.route('**/assets/ProjectScreenScene-*.js',route=>route.abort())
+  await broken.addInitScript(()=>sessionStorage.setItem('nikolay:intro:seen:v1','1'))
   await broken.goto(url);await broken.locator('[data-scene-status="ready"]').waitFor();await broken.locator('.project-screens').scrollIntoViewIfNeeded()
   await broken.locator('.project-screens[data-screen-status="fallback"]').waitFor()
   assert(await broken.getByRole('link',{name:'Посмотреть сайт',exact:true}).isVisible())
