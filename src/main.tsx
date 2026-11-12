@@ -41,6 +41,7 @@ function App(){
        </motion.div>
      </div>
      <div className="hero-visual" ref={anchor}>
+       <button className="portal-interaction" type="button" aria-label="Раскрыть металлический портал"><span>НАЖМИТЕ, ЧТОБЫ ИЗМЕНИТЬ ФОРМУ</span></button>
        <div className="visual-coordinate" aria-hidden="true"><span>01 / PROCEDURAL FORM</span><span>REALTIME · INTERACTIVE</span></div>
      </div>
    </div>

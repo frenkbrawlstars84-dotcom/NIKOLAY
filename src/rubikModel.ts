@@ -37,12 +37,25 @@ export class RubikController {
   completedTurns = 0
   idle = 0
   sequenceIndex = 0
-  readonly duration = 1.8
-  readonly pause = 6.5
+  readonly duration = .34
+  readonly pause = 1.35
+  private pendingCombination = false
+  private cycleLength = 0
+  get returning() { return this.cycleLength > 0 && this.queue.length < this.cycleLength / 2 && Boolean(this.active) }
+  get solved() { return !this.pendingCombination && !this.active && !this.queue.length && this.cells.every(c => c.position.every((v,i) => v === c.home[i]) && c.orientation.every((v,i) => v === (i % 4 === 0 ? 1 : 0))) }
+  get phase() { return this.active || this.queue.length ? 'ACTIVE' : 'IDLE' }
+  // Coalesce repeat taps. Finish the current reversible cycle, then play one
+  // short extra combination from the solved state, rather than stacking work.
+  requestCombination() { this.pendingCombination = true; this.idle = this.pause }
+  private cycle(short = false) {
+    const moves = sequence.slice(0, short ? 3 : sequence.length)
+    return [...moves, ...moves.slice().reverse().map(move => ({ ...move, direction: -move.direction as -1 | 1 }))]
+  }
   request(move: Move = { axis: 'y', layer: 1, direction: 1 }) {
     if (this.queue.length < 8) this.queue.push(move)
   }
   finishPending() {
+    if(this.pendingCombination){this.queue.push(...this.cycle(true));this.pendingCombination=false}
     if (this.active) { commitTurn(this.cells, this.active.move); this.completedTurns++; this.active = null }
     for (const move of this.queue) { commitTurn(this.cells, move); this.completedTurns++ }
     this.queue.length = 0; this.idle = 0
@@ -52,14 +65,14 @@ export class RubikController {
     let remaining = Math.min(delta, 60)
     // Consume only the time belonging to each phase. Carry the remainder
     // across boundaries so irregular frame intervals cannot shift or jump turns.
-    for (let step=0; step<32 && remaining>1e-10; step++) {
+    for (let step=0; step<512 && remaining>1e-10; step++) {
       if (!this.active) {
         if (this.queue.length) this.active = { move: this.queue.shift()!, elapsed: 0 }
-        else if (automatic) {
+        else if (automatic || this.pendingCombination) {
           const consumed=Math.min(remaining,this.pause-this.idle)
           this.idle+=consumed; remaining-=consumed
           if(this.idle<this.pause-1e-10)return
-          this.active={move:sequence[this.sequenceIndex++ % sequence.length],elapsed:0};this.idle=0
+          const cycle=this.cycle(this.pendingCombination);this.cycleLength=cycle.length;this.queue.push(...cycle);this.pendingCombination=false;this.sequenceIndex++;this.active={move:this.queue.shift()!,elapsed:0};this.idle=0
         } else return
       }
       const consumed=Math.min(remaining,this.duration-this.active.elapsed)

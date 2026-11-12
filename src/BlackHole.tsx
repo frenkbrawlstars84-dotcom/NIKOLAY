@@ -12,7 +12,10 @@ const rayFragment = `
   uniform vec2 uResolution;
   varying vec2 vUv;
   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
-  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+  // A deterministic scalar lattice using arithmetic rather than trigonometric
+  // hashes. Four interpolated octaves stay procedural at every camera distance.
+  float gridHash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
+  float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(gridHash(i),gridHash(i+vec2(1,0)),f.x),mix(gridHash(i+vec2(0,1)),gridHash(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){
     float value=noise(p)*.53+noise(p*2.03+4.7)*.27+noise(p*4.07+9.3)*.13;
     value+=noise(p*8.11+2.6)*.07;
@@ -37,22 +40,40 @@ const rayFragment = `
     float deepStars=starLayer(angular+parallax,255.,37.);
     return vec3(.00025,.0003,.0004)+vec3(farStars*.8+deepStars*.4);
   }
+  vec3 galaxies(vec3 d){
+    // Distant spiral galaxies share the same angular sky, never a second hole.
+    vec2 uv=d.xy/max(.4,-d.z);
+    float light=0.;
+    for(int i=0;i<3;i++){
+      float id=float(i);
+      vec2 center=vec2(sin(id*3.7+.8)*.72,cos(id*4.1+.7)*.42);
+      vec2 p=uv-center-vec2(uEye.z*.0015*(id+1.),0.);
+      float a=.6+id*.8+uTime*.006,c=cos(a),s=sin(a);
+      p=mat2(c,-s,s,c)*p;p.y*=2.4;
+      float r=length(p),angle=atan(p.y,p.x);
+      float arms=pow(.5+.5*cos(angle*2.-log(r+.018)*5.),4.);
+      light+=exp(-r*17.)*(.2+arms*.5)+exp(-r*r*1800.)*.12;
+    }
+    return vec3(.24,.34,.52)*light;
+  }
   float gas(vec3 p,vec3 direction,vec3 normal){
     float r=length(p);
     if(r<1.43||r>7.)return 0.;
     float edge=smoothstep(1.43,1.85,r)*(1.-smoothstep(5.5,7.,r));
     vec2 plane=vec2(p.x,dot(p,normalize(cross(normal,vec3(1,0,0)))));
     // Rotate the unit vector directly: avoid atan -> sin/cos round trips.
-    float spin=uTime*.12/(r*sqrt(r))+r*.2;
+    float spin=uTime*.19/(r*sqrt(r))+r*.32;
     float cs=cos(spin),sn=sin(spin);
     vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
     float clouds=fbm(orbit*r*2.6);
     // Uneven orbital filaments retain texture at close range without cloudy,
     // screen-space blur. Exposure is bounded before adding the small glow.
     vec2 flow=orbit*r;
+    float spiral=sin(r*22.+dot(orbit,vec2(2.4,1.2))*4.+clouds*3.);
     float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
     float detail=noise(orbit*r*27.);
-    float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+pow(detail,6.)*.07;
+    float detail2=detail*detail,arm=max(spiral,0.),arm2=arm*arm;
+    float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+(detail2*detail2*detail2)*.07+(arm2*arm2*arm)*.14;
     float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
     float doppler=.82+.24*dot(tangent,-direction);
@@ -65,7 +86,7 @@ const rayFragment = `
     vec3 direction=normalize(vec3(screen.x*uAspect*.383864/framing,screen.y*.383864/framing,-1.));
     vec3 eye=uEye;
     if(length(eye)<1.035){gl_FragColor=vec4(0,0,0,1);return;}
-    if(eye.z<=0.){gl_FragColor=vec4(sky(direction),1);return;}
+    if(eye.z<=0.){gl_FragColor=vec4(sky(direction)+galaxies(direction),1);return;}
     // Analytic thin-lens mapping at native resolution. No iterative full-screen
     // raymarch and no stretched low-resolution image: evaluate the disk in 3D.
     float critical=2.05;
@@ -75,8 +96,8 @@ const rayFragment = `
     vec2 plane=(eye+direction*(eye.z/max(-direction.z,.001))).xy;
     float beta=impact-critical*critical/max(impact,.001);
     vec2 warped=normalize(plane+vec2(.00001))*beta;
-    vec3 normal=normalize(vec3(0.,1.,.22));
-    vec3 backImage=vec3(warped.x,warped.y,-warped.y/.22);
+    vec3 normal=normalize(vec3(0.,1.,.32));
+    vec3 backImage=vec3(warped.x,warped.y,-warped.y/.32);
     float lensed=0.;
     if(length(backImage)<7.1)lensed=gas(backImage,direction,normal)*outside;
     float direct=0.,denominator=dot(direction,normal);
@@ -87,11 +108,15 @@ const rayFragment = `
         if(length(hit)<7.1)direct=gas(hit,direction,normal)*mix(outside,1.,smoothstep(-.08,.08,hit.z));
       }
     }
+    // Reuse the resolved disk structure for the narrow lensed rim. Repeating
+    // all noise octaves for this image costs a third full gas evaluation.
+    float secondary=lensed*exp(-max(impact-critical,0.)*7.)*.28;
     float photon=exp(-abs(impact-critical-.018)/max(.018,aa))*.035*outside;
-    float light=direct*.82+lensed*.68+photon;
+    float light=direct*.94+lensed*.72+secondary+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 emission=vec3(.92*(1.-exp(-light*2.05)));
+    vec3 temperature=mix(vec3(.61,.74,.96),vec3(1.,.95,.85),clamp(light*1.7,0.,1.));
+    vec3 emission=temperature*(1.-exp(-light*2.05));
     gl_FragColor=vec4(background+emission,1);
   }
 
@@ -140,7 +165,7 @@ export default function BlackHole({ progress, clock, low, onUnavailable }: { pro
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
   useFrame(()=>{
-    const p=progress.current,active=p>.26&&p<.999
+    const p=progress.current,active=p>.32&&p<.999
     if(mesh.current)mesh.current.visible=active
     if(!active)return
     resources.ray.uniforms.uEye.value.copy(camera.position);resources.ray.uniforms.uEye.value.z+=24

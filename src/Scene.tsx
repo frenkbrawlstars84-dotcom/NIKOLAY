@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import useTactile from './useTactile'
 import SceneFallback from './SceneFallback'
 import CanvasHealth from './CanvasHealth'
 import BlackHole from './BlackHole'
@@ -14,8 +15,12 @@ const vertex = `
   uniform float uTime;
   uniform float uProgress;
   uniform float uReveal;
+  uniform float uMorph;
+  uniform float uHover;
+  attribute float aSide;
   attribute float aStrand;
   attribute float aPath;
+  varying vec3 vViewPosition;
   varying float vLight;
   varying float vDepth;
   varying vec3 vWorldPosition;
@@ -25,6 +30,13 @@ const vertex = `
     vec3 p = position;
     p.xy *= 1. + .06 * sin(p.z * 1.7 + t);
     p.x += sin(p.y * 1.3 + t) * .08;
+    float path=aPath*6.283185;
+    float azimuth=aStrand*6.283185;
+    vec3 opened=vec3(cos(path)*(1.45+.32*cos(azimuth)),sin(path)*(1.45+.32*cos(azimuth)),sin(azimuth)*.75+sin(path*2.+azimuth)*.24);
+    p=mix(p,opened,uMorph*(1.-smoothstep(.06,.24,uProgress)));
+    // Indexed two-sided ribbons use the same vertices for the scroll corridor.
+    p.xy+=vec2(cos(path),sin(path))*aSide*(.012+uHover*.003);
+    p*=1.+uHover*.018;
     // The same vertices become longitudinal filaments, rather than circular
     // rings. Camera travel creates optic flow through this continuous corridor.
     float angle = aStrand * 6.283185 + aPath * 1.25 + sin(aPath * 5. + aStrand * 12.) * .12;
@@ -36,6 +48,7 @@ const vertex = `
     p = mix(p, corridor, unfurl);
     vLight = .3 + .7 * pow(.5 + .5 * sin(aStrand * 28. + aPath * 14. + t), 2.);
     vec4 viewPosition = modelViewMatrix * vec4(p * uReveal, 1.);
+    vViewPosition=viewPosition.xyz;
     vWorldPosition=(modelMatrix*vec4(p*uReveal,1.)).xyz;
     vDepth = -viewPosition.z;
     gl_Position = projectionMatrix * viewPosition;
@@ -43,6 +56,8 @@ const vertex = `
 `
 const fragment = `
   uniform float uProgress;
+  uniform float uFlash;
+  varying vec3 vViewPosition;
   varying float vLight;
   varying float vDepth;
   varying vec3 vWorldPosition;
@@ -58,7 +73,12 @@ const fragment = `
       float entry=-dot(eye,sight)-sqrt(max(4.2025-impact*impact,0.));
       hidden=step(0.,entry)*step(entry,distance)*(1.-smoothstep(2.,2.1,impact))*smoothstep(.33,.52,uProgress);
     }
-    gl_FragColor = vec4(vec3(.81, .83, .87) * vLight, weight * (.35 + .65 * vLight) * fog * exitFade*(1.-hidden));
+    vec3 normal=normalize(cross(dFdx(vViewPosition),dFdy(vViewPosition)));
+    float facing=abs(dot(normal,normalize(-vViewPosition)));
+    float studio=pow(abs(dot(normal,normalize(vec3(-.6,.8,1.)))),7.);
+    float rim=pow(1.-facing,2.);
+    vec3 silver=mix(vec3(.15,.23,.36),vec3(.84,.91,1.),clamp(studio*.8+rim*.55+vLight*.38,0.,1.));
+    gl_FragColor = vec4(silver+vec3(.24,.45,.8)*uFlash*.45, (.8+weight*.2)*fog*exitFade*(1.-hidden));
   }
 `
 const particleVertex = `
@@ -103,7 +123,8 @@ const particleFragment = `
   }
 `
 
-function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omit<SceneProps, 'anchor' | 'onReady'> & { low: boolean; frame: RefObject<IntroFrame> }) {
+function Sculpture({ progress, reduced, paused, low, frame, onUnavailable, anchor }: Omit<SceneProps, 'onReady'> & { low: boolean; frame: RefObject<IntroFrame> }) {
+  const interaction=useTactile(reduced,'Металлический портал: нажмите для раскрытия лент; повторно — собрать. Прокрутите для погружения',anchor,()=>progress.current<.18)
   const object = useRef<THREE.Group>(null)
   const { invalidate, camera, size } = useThree()
   const pointer = useRef({ x: 0, y: 0 })
@@ -123,24 +144,26 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
 
   const material = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: vertex, fragmentShader: fragment, transparent: true,
-    depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending,
-    uniforms: { uTime: { value: 0 }, uProgress: { value: 0 }, uReveal: { value: reduced ? 1 : 0 } },
+    depthTest: true, depthWrite: true, side: THREE.DoubleSide,
+    uniforms: { uMorph:{value:0}, uHover:{value:0}, uFlash:{value:0}, uTime: { value: 0 }, uProgress: { value: 0 }, uReveal: { value: reduced ? 1 : 0 } },
   }), [reduced])
   const geometry = useMemo(() => {
-    const strands = low ? 36 : 76, segments = low ? 104 : 168
-    const points: number[] = [], ids: number[] = [], paths: number[] = []
+    const strands = low ? 24 : 44, segments = low ? 104 : 168
+    const points: number[] = [], ids: number[] = [], paths: number[] = [], sides: number[] = [], indices: number[] = []
     for (let j = 0; j < strands; j++) {
-      const f = j / strands, a = f * Math.PI * 2
-      for (let k = 0; k < segments; k++) for (const n of [k, k + 1]) {
-        const t = n / segments * Math.PI * 2, radius = 1.55 + .46 * Math.cos(3 * t + a)
+      const f = j / strands, a = f * Math.PI * 2, base=points.length/3
+      for (let k = 0; k <= segments; k++) for (const side of [-1,1]) {
+        const t = k / segments * Math.PI * 2, radius = 1.55 + .46 * Math.cos(3 * t + a)
         points.push(radius * Math.cos(t), radius * Math.sin(t), .57 * Math.sin(3 * t + a) + .17 * Math.cos(a))
-        ids.push(f); paths.push(n / segments)
+        ids.push(f); paths.push(k / segments); sides.push(side)
       }
+      for(let k=0;k<segments;k++){const n=base+k*2;indices.push(n,n+1,n+2,n+1,n+3,n+2)}
     }
     const result = new THREE.BufferGeometry()
     result.setAttribute('position', new THREE.Float32BufferAttribute(points, 3))
     result.setAttribute('aStrand', new THREE.Float32BufferAttribute(ids, 1))
     result.setAttribute('aPath', new THREE.Float32BufferAttribute(paths, 1))
+    result.setAttribute('aSide', new THREE.Float32BufferAttribute(sides, 1));result.setIndex(indices)
     return result
   }, [low])
   const particleGeometry = useMemo(() => {
@@ -175,6 +198,9 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     const p = smoothedProgress.current
     const center = THREE.MathUtils.smoothstep(p, .16, .4)
     const travel = journeyProgress(p)
+    material.uniforms.uMorph.value=interaction.current.value
+    material.uniforms.uHover.value=interaction.current.hover
+    material.uniforms.uFlash.value=interaction.current.flash
     material.uniforms.uTime.value = clock.current
     material.uniforms.uProgress.value = p
     material.uniforms.uReveal.value = paused || reduced ? 1 : THREE.MathUtils.damp(material.uniforms.uReveal.value, 1, 3.2, dt)
@@ -183,7 +209,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     // The initial scale/position is measured from the empty, protected hero viewport.
     const worldHeight = 2 * 7.4 * Math.tan(42 * Math.PI / 360)
     const worldWidth = worldHeight * size.width / size.height
-    const introScale = Math.min(frame.current.width * worldWidth, frame.current.height * worldHeight) / 4.7
+    const introScale = Math.min(frame.current.width * worldWidth, frame.current.height * worldHeight) / 5.2
     if (object.current) {
       object.current.visible = p < .62
       object.current.position.set(frame.current.x * worldWidth * (1 - center), frame.current.y * worldHeight * (1 - center), 0)
@@ -198,7 +224,7 @@ function Sculpture({ progress, reduced, paused, low, frame, onUnavailable }: Omi
     camera.position.x = low ? 0 : Math.sin(travel * Math.PI) * .08
     camera.position.y = Math.sin(travel * Math.PI) * .04
   })
-  return <><group ref={object}><lineSegments geometry={geometry} material={material} frustumCulled={false} renderOrder={20}/></group><lineSegments geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={21}/><BlackHole progress={smoothedProgress} clock={clock} low={low} onUnavailable={onUnavailable}/></>
+  return <><group ref={object}><mesh geometry={geometry} material={material} frustumCulled={false} renderOrder={20}/></group><lineSegments geometry={particleGeometry} material={particleMaterial} frustumCulled={false} renderOrder={21}/><BlackHole progress={smoothedProgress} clock={clock} low={low} onUnavailable={onUnavailable}/></>
 }
 
 export default function Scene({ progress, reduced, paused, anchor, onReady, onUnavailable }: SceneProps) {
@@ -244,5 +270,5 @@ export default function Scene({ progress, reduced, paused, anchor, onReady, onUn
     aria-label="Спираль, пространственный туннель и проход через чёрную дыру TON 618"
     camera={{ position: [0, 0, 7.4], fov: 42, near: .1, far: 70 }} dpr={low ? 1 : [1, 1.25]} frameloop={reduced || paused || !visible || !inView || !ownsFrame ? 'demand' : 'always'}
     gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
+  ><CanvasHealth onReady={onReady} onUnavailable={onUnavailable}/><Sculpture progress={progress} reduced={reduced} paused={paused || !visible || !inView || !ownsFrame} low={low} frame={frame} anchor={anchor} onUnavailable={onUnavailable} /></Canvas> : <SceneFallback />}</div>
 }

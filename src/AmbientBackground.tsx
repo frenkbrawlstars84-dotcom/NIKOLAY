@@ -42,7 +42,19 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
       paint.putImageData(pixels, 0, 0)
       return texture
     }
-    const blueCloud = cloud([76, 78, 83], .4), violetCloud = cloud([87, 84, 89], 1.8)
+    const blueCloud = cloud([77, 103, 145], .4), violetCloud = cloud([109, 122, 149], 1.8)
+    // Cached spiral/star-cluster sprites; no extra WebGL context or downloads.
+    const galaxy=document.createElement('canvas');galaxy.width=galaxy.height=384
+    const g=galaxy.getContext('2d')!
+    const halo=g.createRadialGradient(192,192,2,192,192,170)
+    halo.addColorStop(0,'#bacce54d');halo.addColorStop(.18,'#91b2e11c');halo.addColorStop(1,'#668bc900')
+    g.fillStyle=halo;g.fillRect(0,0,384,384)
+    for(let i=0;i<1500;i++){
+      const r=Math.sqrt(random())*166,a=r*.041+(i%2)*Math.PI+(random()-.5)*.55
+      const x=192+Math.cos(a)*r,y=192+Math.sin(a)*r
+      g.fillStyle=`rgba(181,204,238,${.12+random()*.32})`;g.fillRect(x,y,.4+random()*.9,.4+random()*.9)
+    }
+    const clusters=Array.from({length:3},(_,i)=>({x:i%2?.09:.89,y:.16+i*.31,depth:.2+i*.16}))
     const draw = () => {
       ctx.clearRect(0, 0, width, height)
       if (!reduced && !paused) { drift.x += (pointer.x - drift.x) * .035; drift.y += (pointer.y - drift.y) * .035 }
@@ -59,7 +71,13 @@ export default function AmbientBackground({ reduced, paused }: { reduced: boolea
         ctx.drawImage(violetCloud, -width * .6, -height * .15, width * .85, height * 1.1)
       }
       ctx.restore()
-      const count = low ? 55 : stars.length
+      for(let i=0;i<(low?2:3);i++){
+        const cluster=clusters[i],size=Math.min(width*.3,330)
+        const y=((cluster.y*height-scroll*cluster.depth*45)%(height+size)+height+size)%(height+size)-size*.25
+        ctx.save();ctx.translate(width*cluster.x+drift.x*6,y);ctx.rotate(.4+i*1.4+(reduced?0:time*.006));ctx.scale(1,.46)
+        ctx.globalAlpha=low?.28:.4;ctx.drawImage(galaxy,-size/2,-size/2,size,size);ctx.restore()
+      }
+      const count = low ? 75 : stars.length
       for (let i = 0; i < count; i++) {
         const s = stars[i], parallax = reduced ? 0 : scroll * s.depth * 30
         const x = (s.x * width + drift.x * s.depth * 18 + Math.sin(time * .015 + s.phase) * 3 + width) % width

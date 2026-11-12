@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { projects } from './projects'
 import type { Project } from './projects'
+import useTactile from './useTactile'
 import CanvasHealth from './CanvasHealth'
 import StudioLighting from './StudioLighting'
 
@@ -18,19 +19,18 @@ function placeholder(project: Project) {
   ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.strokeRect(50,50,1180,700)
   ctx.fillStyle='#a0a0a0';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText(project.upcoming?'СЛЕДУЮЩАЯ ИСТОРИЯ':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ',640,285)
   ctx.fillStyle='#f0f0f0';ctx.font='54px Arial';ctx.fillText(project.upcoming?'YOUR NEXT IDEA':project.name,640,405)
-  ctx.fillStyle='#858585';ctx.font='16px Arial';ctx.fillText(project.upcoming?'Место для вашего проекта':'Обложка проекта · не скриншот',640,465)
+  ctx.fillStyle='#858585';ctx.font='16px Arial';ctx.fillText(project.upcoming?'Создадим следующий проект вместе → @yuniorqq':'Обложка проекта · не скриншот',640,465)
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace
   return texture
 }
-function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Project;index:number}) {
+type PanelGeometry = { frame: THREE.BufferGeometry; screen: THREE.BufferGeometry; indicator: THREE.BufferGeometry }
+function ScreenPanel({ project,index,interaction,geometry,...props }: ScreenSceneProps & {project:Project;index:number;interaction:ReturnType<typeof useTactile>;geometry:PanelGeometry}) {
   const group=useRef<THREE.Group>(null),{ gl,invalidate }=useThree()
   const resources=useMemo(()=>{
     const cover=placeholder(project)
-    const frame=new RoundedBoxGeometry(5.6,3.76,.18,props.low?1:2,.075)
-    const screen=new THREE.PlaneGeometry(5.34,3.3375)
     const body=new THREE.MeshStandardMaterial({color:'#303033',metalness:.85,roughness:.23,transparent:true})
     const face=new THREE.MeshBasicMaterial({map:cover,toneMapped:false,transparent:true})
-    return {cover,frame,screen,body,face}
+    return {cover,body,face}
   },[project,props.low])
   useEffect(()=>{
     if(!project.image)return
@@ -42,36 +42,40 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     },undefined,()=>{ /* Retain the explicitly labeled cover; never blank the app. */ })
     return()=>{disposed=true;if(loaded)loaded.dispose();else texture.dispose()}
   },[project.image,resources,gl,invalidate])
-  useEffect(()=>()=>{resources.cover.dispose();resources.frame.dispose();resources.screen.dispose();resources.body.dispose();resources.face.dispose()},[resources])
+  useEffect(()=>()=>{resources.cover.dispose();resources.body.dispose();resources.face.dispose()},[resources])
   useFrame((_,delta)=>{
     if(!group.current)return
     const offset=index-props.position.get(),distance=Math.abs(offset),dt=Math.min(delta,.05)
     const visible=props.reduced?Math.round(props.position.get())===index:distance<2.05
     group.current.visible=visible
     if(!visible)return
-    const attention=Math.exp(-distance*distance*3.2),pointer=props.pointer.current
+    const attention=Math.exp(-distance*distance*3.2),pointer=props.pointer.current,m=interaction.current
     const blend=props.reduced?1:1-Math.exp(-dt*9)
     group.current.position.x=THREE.MathUtils.lerp(group.current.position.x,props.reduced?0:offset*2.05,blend)
     group.current.position.y=THREE.MathUtils.lerp(group.current.position.y,props.reduced?0:distance*.12,blend)
-    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.28,blend)
-    group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*.03),blend))
+    group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*3.15+attention*(.56+m.value*.18),blend)
+    group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*(.055+m.value*.015)),blend))
     group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.18*attention,blend)
     group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.14*attention,blend)
-    resources.face.opacity=props.reduced?1:Math.max(.5,1-distance*.18)
+    resources.face.opacity=1
+    resources.body.emissive.setRGB(.2,.34,.55);resources.body.emissiveIntensity=m.flash*attention*.4
     resources.body.opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.35,.15,1)
   })
   return <group ref={group} position={[index*1.65,index*.12,-index*2.5]}>
-    <mesh geometry={resources.frame} material={resources.body}/>
-    <mesh geometry={resources.screen} material={resources.face} position={[0,-.08,.101]}/>
-    {[-2.5,-2.35,-2.2].map(x=><mesh key={x} position={[x,1.73,.108]}><circleGeometry args={[.025,8]}/><meshBasicMaterial color="#bdbdbd"/></mesh>)}
+    <mesh geometry={geometry.frame} material={resources.body}/>
+    <mesh geometry={geometry.screen} material={resources.face} position={[0,-.08,.101]}/>
+    {[-2.5,-2.35,-2.2].map(x=><mesh key={x} geometry={geometry.indicator} position={[x,1.73,.108]}><meshBasicMaterial color="#bdbdbd"/></mesh>)}
   </group>
 }
 function ScreenWorld(props: ScreenSceneProps) {
+  const geometry=useMemo(()=>({frame:new RoundedBoxGeometry(5.6,3.76,.18,props.low?1:2,.075),screen:new THREE.PlaneGeometry(5.34,3.3375),indicator:new THREE.CircleGeometry(.025,8)}),[props.low])
+  useEffect(()=>()=>{geometry.frame.dispose();geometry.screen.dispose();geometry.indicator.dispose()},[geometry])
+  const interaction=useTactile(props.reduced,'Экран проекта: нажмите для приближения; повторно — вернуть')
   const { camera,size,invalidate }=useThree()
   const distance=useRef(7)
   useEffect(()=>{
     const tangent=Math.tan(40*Math.PI/360),aspect=size.width/size.height
-    distance.current=Math.max(3.76*1.04/(2*tangent*.87),5.6*1.04/(2*tangent*aspect*.84))+.28
+    distance.current=Math.max(3.76*1.04/(2*tangent*.87),5.6*1.04/(2*tangent*aspect*.84))+.72
     camera.position.set(0,.05,distance.current)
     camera.lookAt(0,0,-.2);camera.updateProjectionMatrix();invalidate()
   },[camera,size.width,size.height,invalidate])
@@ -82,7 +86,7 @@ function ScreenWorld(props: ScreenSceneProps) {
     camera.position.y=props.reduced?.05:THREE.MathUtils.damp(camera.position.y,.05+Math.sin(p*Math.PI)*.08,6,dt)
     camera.lookAt(0,0,-.2)
   })
-  return <><StudioLighting low={props.low} monochrome={true}/>{projects.map((project,index)=><ScreenPanel key={project.name} project={project} index={index} {...props}/>)}</>
+  return <><StudioLighting low={props.low} monochrome={true}/>{projects.map((project,index)=><ScreenPanel key={project.name} project={project} index={index} interaction={interaction} geometry={geometry} {...props}/>)}</>
 }
 export default function ProjectScreenScene(props: ScreenSceneProps) {
   return <Canvas camera={{position:[0,0,7],fov:40,near:.1,far:40}} dpr={props.low?[1,1.25]:[1,1.5]} frameloop={props.paused||props.reduced?'demand':'always'} gl={{alpha:true,antialias:true,powerPreference:'high-performance'}} aria-label="Объёмные экраны демонстрационных проектов AURA BEAUTY и NEXORA DIGITAL">

@@ -25,7 +25,7 @@ export default function ProjectScreens({position,active,reduced,paused}:{positio
     media.addEventListener('change',resize);document.addEventListener('visibilitychange',visibility)
     return()=>{observer.disconnect();media.removeEventListener('change',resize);document.removeEventListener('visibilitychange',visibility)}
   },[])
-  useEffect(()=>{if(seen&&inView&&visible&&status==='loading'){const timeout=setTimeout(fail,10000);return()=>clearTimeout(timeout)}},[seen,inView,visible,status,fail])
+  useEffect(()=>{if(seen&&inView&&visible&&status==='loading'){const timeout=setTimeout(()=>{if(phase.current==='loading')fail()},10000);return()=>clearTimeout(timeout)}},[seen,inView,visible,status,fail])
   const project=projects[active],running=ownsFrame&&inView&&visible&&!paused&&!reduced
   const fallback=<div className="screen-static-fallback">{project.image?<img src={project.image} alt={`Скриншот сайта ${project.name}`}/>:<><span>{project.upcoming?'СЛЕДУЮЩАЯ ГЛАВА':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ'}</span><strong>{project.name}</strong><small>Обложка проекта · не скриншот</small></>}</div>
   return <div className="project-screens" ref={host} data-screen-status={status} data-scene-running={running} onPointerMove={e=>{if(reduced||e.pointerType==='touch')return;const r=e.currentTarget.getBoundingClientRect();pointer.current={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5}}} onPointerLeave={()=>{pointer.current={x:0,y:0}}}>

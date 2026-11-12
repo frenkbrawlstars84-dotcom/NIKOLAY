@@ -41,13 +41,13 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   }, [])
   useEffect(() => {
     if (!seen || status !== 'loading' || !inView || !visible) return
-    const timeout = setTimeout(fail, 10_000)
+    const timeout = setTimeout(()=>{if(phase.current==='loading')fail()}, 10_000)
     return () => clearTimeout(timeout)
   }, [seen, status, inView, visible, fail])
   const fallback = <AccentFallback kind={kind}/>
   const active = ownsFrame && inView && visible && !paused && !reduced
   return <motion.figure ref={host} className={`accent-object accent-${kind}`} data-accent-status={status} data-scene-running={active} initial={reduced?false:{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.15}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
     <div className="accent-stage">{!seen || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene kind={kind} reduced={reduced} paused={!active} low={low} onReady={ready} onUnavailable={fail}/></Suspense></AccentBoundary>}</div>
-    <figcaption>{kind === 'cube' ? 'СЛОЖНОЕ — ИЗ ПРОСТЫХ ЧАСТЕЙ' : kind === 'glass' ? 'СТЕКЛО / ПРЕЛОМЛЕНИЕ / СВЕТ' : 'ПОТЯНИТЕ ДЛЯ ВРАЩЕНИЯ'}</figcaption>
+    <figcaption>{kind === 'cube' ? 'НАЖМИТЕ — ПЕРЕМЕШАТЬ И СОБРАТЬ' : kind === 'glass' ? 'НАЖМИТЕ — РАСКРЫТЬ ГРАНИ' : 'НАЖМИТЕ — ИЗМЕНИТЬ ФОРМУ · ПОТЯНИТЕ — ВРАЩАТЬ'}</figcaption>
   </motion.figure>
 }

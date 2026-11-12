@@ -30,7 +30,7 @@ export default function SceneLayer({ progress, reduced, paused, anchor, onStatus
   useEffect(() => {
     if (status !== 'loading') return
     // Slow/blocked imports and a renderer that never draws cannot hold the page.
-    const timeout = window.setTimeout(fail, 10_000)
+    const timeout = window.setTimeout(()=>{if(phase.current==='loading')fail()}, 10_000)
     return () => clearTimeout(timeout)
   }, [status, fail])
   return <div className="scene-layer" data-scene-status={status}>

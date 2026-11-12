@@ -68,3 +68,20 @@ test('idle-to-turn boundary uses only the remaining fraction of a frame',()=>{
  const before=JSON.stringify(model.cells);model.advance(.2)
  assert.equal(JSON.stringify(model.cells),before,'The completed layer stays still during the next pause')
 })
+
+test('automatic scramble and exact inverse restore every cubie and orientation over repeated cycles',()=>{
+ const model=new RubikController()
+ for(let cycle=0;cycle<8;cycle++){
+   model.advance(model.pause)
+   for(let turn=0;turn<12;turn++)model.advance(model.duration)
+   assert(model.solved)
+   assert.deepEqual(model.cells,createCube())
+ }
+})
+test('repeat taps coalesce into one extra short cycle and return to solved even during an automatic turn',()=>{
+ const model=new RubikController();model.advance(model.pause+.1)
+ for(let i=0;i<20;i++)model.requestCombination()
+ for(let i=0;i<1600;i++)model.advance(.01,false)
+ assert(model.solved);assert.deepEqual(model.cells,createCube());assert.equal(model.completedTurns,18)
+ const reduced=new RubikController();reduced.requestCombination();reduced.finishPending();assert(reduced.solved);assert.deepEqual(reduced.cells,createCube())
+})

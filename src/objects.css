@@ -45,3 +45,16 @@
   .project-meta-deck .project-info p{font-size:11px;line-height:1.6}
   .gallery-controls{padding-top:8px}
 }
+
+/* Interaction stays within the protected hero slot, separate from scroll travel. */
+.portal-interaction{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;color:#b2bfd3;cursor:pointer;pointer-events:auto;touch-action:pan-y;border-radius:12px}
+.portal-interaction span{position:absolute;bottom:30px;left:0;right:0;font-size:7px;letter-spacing:1.8px;opacity:.7}
+.portal-interaction:focus-visible{outline:1px solid #b8d1f0;outline-offset:-6px}
+.portal-interaction[data-interaction="ACTIVE"] span{opacity:1;color:#e4efff}
+.accent-cube .accent-stage,.accent-cube .accent-stage canvas{pointer-events:auto!important;touch-action:pan-y!important;cursor:pointer}
+.accent-stage canvas:focus-visible{outline:1px solid #b8d1f0}
+.contact-cube-layout{align-items:center}
+.accent-cube{transform:translateY(-4px)}
+@media(prefers-reduced-motion:reduce){.accent-cube{transform:none}}
+
+.portal-interaction:disabled,.visual-status-fallback .portal-interaction{visibility:hidden;pointer-events:none}

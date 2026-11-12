@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import useTactile from './useTactile'
 import { createChromeKnot, createGlassCrystal } from './sculptureGeometry'
 
 type Props = { paused: boolean; reduced: boolean; low: boolean }
@@ -36,10 +37,22 @@ function useSculpturePose(paused: boolean, reduced: boolean) {
 }
 export function ChromeKnot(props: Props) {
   const group=useRef<THREE.Group>(null),pose=useSculpturePose(props.paused,props.reduced)
-  const geometry=useMemo(()=>createChromeKnot(props.low),[props.low])
+  const tactile=useTactile(props.reduced,'Металлический узел: нажмите, чтобы раскрыть; повторно — собрать. Стрелки — вращение')
+  const mesh=useRef<THREE.Mesh>(null),material=useRef<THREE.MeshStandardMaterial>(null)
+  const geometry=useMemo(()=>{
+    const g=createChromeKnot(props.low),p=g.attributes.position,target=p.clone()
+    for(let i=0;i<p.count;i++){
+      const x=p.getX(i),y=p.getY(i),z=p.getZ(i),a=Math.atan2(y,x),r=Math.hypot(x,y)
+      target.setXYZ(i,Math.cos(a)*(r*.78+.35),Math.sin(a)*(r*.78+.35),z*.35+Math.sin(a*3)*.64)
+    }
+    g.morphAttributes.position=[target];return g
+  },[props.low])
+  useLayoutEffect(()=>{mesh.current?.updateMorphTargets()},[geometry])
   useEffect(()=>()=>geometry.dispose(),[geometry])
   useFrame((_,delta)=>{
-    const p=pose.current,dt=Math.min(delta,.05)
+    const p=pose.current,dt=Math.min(delta,.05),m=tactile.current
+    if(mesh.current?.morphTargetInfluences)mesh.current.morphTargetInfluences[0]=m.value
+    if(material.current){material.current.emissiveIntensity=m.flash*.38+m.hover*.035;material.current.roughness=.13-m.hover*.025}
     if(!props.paused&&!props.reduced)p.time+=dt
     if(group.current){
       const damping=props.reduced?1:1-Math.exp(-dt*7)
@@ -48,17 +61,30 @@ export function ChromeKnot(props: Props) {
       group.current.rotation.z=props.reduced?0:p.time*.035
     }
   })
-  return <group ref={group} rotation={[.35,0,0]}><mesh geometry={geometry}><meshStandardMaterial color="#d9d9d9" metalness={1} roughness={.13} envMapIntensity={1.65}/></mesh></group>
+  return <group ref={group} rotation={[.35,0,0]}><mesh ref={mesh} geometry={geometry}><meshStandardMaterial ref={material} color="#cad8ec" emissive="#7daaff" emissiveIntensity={0} metalness={1} roughness={.13} envMapIntensity={1.65}/></mesh></group>
 }
 export function GlassPolyhedron(props: Props) {
   const group=useRef<THREE.Group>(null),pose=useSculpturePose(props.paused,props.reduced)
-  const geometry=useMemo(()=>createGlassCrystal(props.low),[props.low])
+  const tactile=useTactile(props.reduced,'Стеклянный кристалл: нажмите, чтобы раскрыть грани; повторно — собрать. Стрелки — вращение')
+  const mesh=useRef<THREE.Mesh>(null),material=useRef<THREE.MeshPhysicalMaterial>(null),outline=useRef<THREE.LineSegments>(null)
+  const geometry=useMemo(()=>{
+    const g=createGlassCrystal(props.low),p=g.attributes.position,target=p.clone(),center=new THREE.Vector3()
+    for(let i=0;i<p.count;i+=3){
+      center.set(0,0,0);for(let j=0;j<3;j++)center.x+=p.getX(i+j)/3,center.y+=p.getY(i+j)/3,center.z+=p.getZ(i+j)/3
+      for(let j=0;j<3;j++)target.setXYZ(i+j,p.getX(i+j)+center.x*.24,p.getY(i+j)+center.y*.18,p.getZ(i+j)+center.z*.24)
+    }
+    g.morphAttributes.position=[target];return g
+  },[props.low])
+  useLayoutEffect(()=>{mesh.current?.updateMorphTargets()},[geometry])
   const edges=useMemo(()=>new THREE.EdgesGeometry(geometry,28),[geometry])
   const opticalCore=useMemo(()=>{const base=new THREE.OctahedronGeometry(.55);const lines=new THREE.EdgesGeometry(base);base.dispose();return lines},[])
   useEffect(()=>()=>{geometry.dispose();edges.dispose()},[geometry,edges])
   useEffect(()=>()=>opticalCore.dispose(),[opticalCore])
   useFrame((_,delta)=>{
-    const p=pose.current,dt=Math.min(delta,.05)
+    const p=pose.current,dt=Math.min(delta,.05),m=tactile.current
+    if(mesh.current?.morphTargetInfluences)mesh.current.morphTargetInfluences[0]=m.value
+    if(material.current)material.current.emissiveIntensity=m.flash*.3
+    if(outline.current)outline.current.visible=m.value<.02
     if(!props.paused&&!props.reduced)p.time+=dt
     if(group.current){
       const damping=props.reduced?1:1-Math.exp(-dt*5)
@@ -72,8 +98,8 @@ export function GlassPolyhedron(props: Props) {
     <group position={[0,0,-1.4]} rotation={[0,0,-.35]}>{[-.8,0,.8].map((x,i)=><mesh key={x} position={[x,0,0]} rotation={[0,0,i*.3]}><boxGeometry args={[.018,3.5,.018]}/><meshBasicMaterial color="#b8b8b8"/></mesh>)}</group>
     <group ref={group} rotation={[.4,0,0]}>
       <lineSegments geometry={opticalCore} rotation={[.3,.4,.15]}><lineBasicMaterial color="#b0b0b0"/></lineSegments>
-      <mesh geometry={geometry}><meshPhysicalMaterial color="#ffffff" metalness={0} roughness={props.low ? .06 : .015} transmission={1} transparent opacity={.6} thickness={props.low ? .3 : .65} ior={1.45} clearcoat={.7} clearcoatRoughness={.035} attenuationColor="#ffffff" attenuationDistance={10} envMapIntensity={1.15} side={THREE.FrontSide}/></mesh>
-      <lineSegments geometry={edges}><lineBasicMaterial color="#d9d9d9" transparent opacity={.26}/></lineSegments>
+      <mesh ref={mesh} geometry={geometry}><meshPhysicalMaterial ref={material} emissive="#9abfff" emissiveIntensity={0} color="#ffffff" metalness={0} roughness={props.low ? .06 : .015} transmission={1} transparent opacity={.6} thickness={props.low ? .3 : .65} ior={1.45} clearcoat={.7} clearcoatRoughness={.035} attenuationColor="#ffffff" attenuationDistance={10} envMapIntensity={1.15} side={THREE.FrontSide}/></mesh>
+      <lineSegments ref={outline} geometry={edges}><lineBasicMaterial color="#d9d9d9" transparent opacity={.26}/></lineSegments>
     </group>
   </>
 }
