@@ -1,0 +1,83 @@
+/* NIKOLAY / small moments. Deliberately light: transform/opacity only. */
+.scroll-progress{
+  position:fixed;top:0;left:0;z-index:70;width:100%;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,#819fca,#f6f8ff 65%,#97b5d6);transform:scaleX(0);transform-origin:left;
+  box-shadow:0 0 14px #9ac8ff88;will-change:transform;
+}
+.header .nav a{position:relative;padding:12px 0}
+.header .nav a:after{
+  content:'';position:absolute;bottom:3px;left:0;width:100%;height:1px;
+  background:#edf5ff;transform:scaleX(0);transform-origin:left;transition:transform .25s ease;
+}
+.header .nav a:hover:after,.header .nav a:focus-visible:after{transform:scaleX(1)}
+.brand>span{display:inline-block;transform-origin:center;animation:brand-pulse 7s ease-in-out infinite}
+@keyframes brand-pulse{0%,85%,100%{transform:rotate(0);opacity:.85}91%{transform:rotate(55deg);opacity:1}}
+.hero-greeting{display:inline-flex;align-items:center;gap:13px}
+.hero-spark{display:inline-block;color:#adc8eb;font-size:13px;animation:hero-spark-turn 9s ease-in-out infinite}
+@keyframes hero-spark-turn{0%,80%,100%{transform:rotate(0) scale(1)}88%{transform:rotate(65deg) scale(1.35)}}
+.hero-status{display:inline-flex;align-items:center;gap:8px;margin:-9px 0 22px;padding:9px 12px;border-radius:99px;
+  background:#9cb4dd0d;border:1px solid #dbe8ff27;color:#aebfd5;font-size:8px;font-weight:600;letter-spacing:.16em}
+.hero-status i{width:5px;height:5px;flex-shrink:0;background:#c6f3dc;border-radius:50%;box-shadow:0 0 11px #9ee2b988}
+.hero-actions .button{position:relative;overflow:hidden}
+.hero-actions .button:after{content:'';position:absolute;inset:0;width:35%;transform:translateX(-230%) skewX(-25deg);
+  background:linear-gradient(90deg,transparent,#fff8,transparent);transition:transform .65s ease;pointer-events:none}
+.hero-actions .button:hover:after{transform:translateX(450%) skewX(-25deg)}
+.hero-actions .text-link svg,.header-contact svg,.gallery-project-visit svg{transition:transform .25s ease}
+.hero-actions .text-link:hover svg,.header-contact:hover svg,.gallery-project-visit:hover svg{transform:translate(3px,-3px)}
+.section-label{position:relative}
+.section-label span:first-child{display:inline-flex;gap:10px;align-items:center}
+.section-label span:first-child:before{content:'';display:block;width:5px;height:5px;border:1px solid #d7e5f988;border-radius:50%;flex-shrink:0}
+.gallery-index button{position:relative}
+.gallery-index button svg{transition:transform .25s ease}
+.gallery-index button:hover svg,.gallery-index button.selected svg{transform:translate(3px,-3px)}
+.portfolio-preview{transition:transform .35s ease,box-shadow .35s ease}
+.gallery-perspective:hover .portfolio-preview{transform:translateY(-5px);box-shadow:0 40px 85px #000b,0 1px 0 #ffffff2a inset}
+.lab-demo{position:relative}
+.lab-demo:after{content:'✳';position:absolute;top:13px;right:17px;font-size:9px;color:#c7dcfa4e;pointer-events:none;transition:transform .35s,color .35s}
+.lab:hover .lab-demo:after{color:#e0eeffba;transform:rotate(45deg) scale(1.15)}
+.capabilities .lab-info>span{letter-spacing:.12em}
+.contact-cube-layout .contact-cta{overflow:hidden}
+.contact-cube-layout .contact-cta:hover svg:last-child{transform:translate(4px,-4px)}
+.contact{padding-bottom:clamp(52px,7vw,100px)}
+/* High-contrast ending: oversized kinetic typography as a final signature. */
+.closing-marquee{
+  background:#e9ebea;color:#111317;position:relative;overflow:hidden;isolation:isolate;
+  border-top:1px solid #fff;box-shadow:0 -30px 70px #0002;
+}
+.marquee-overline,.marquee-bottomline{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  font-size:9px;letter-spacing:.16em;font-weight:700;
+}
+.marquee-overline{padding-top:26px;padding-bottom:7px}
+.marquee-overline a{display:inline-flex;align-items:center;gap:11px;white-space:nowrap;
+  border-bottom:1px solid transparent;padding:6px 0;transition:border-color .2s}
+.marquee-overline a:hover{border-color:#111317}
+.marquee-viewport{width:100%;overflow:hidden;padding:10px 0 16px;mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.marquee-track{display:flex;align-items:center;width:max-content;animation:marquee-flow 24s linear infinite;will-change:transform}
+.marquee-track>span{flex-shrink:0;white-space:nowrap;font-weight:600;
+  font-size:clamp(63px,10.4vw,165px);line-height:1.1;letter-spacing:-.075em}
+.marquee-track em{display:inline-block;font-style:normal;font-weight:300;color:#8e9dae;margin:0 .15em;vertical-align:.04em}
+.closing-marquee:hover .marquee-track{animation-play-state:paused}
+.marquee-bottomline{padding-top:4px;padding-bottom:27px;color:#58616c;font-size:8px}
+@keyframes marquee-flow{to{transform:translateX(-50%)}}
+@media(max-width:900px){
+  .marquee-overline,.marquee-bottomline{font-size:8px;letter-spacing:.1em}
+  .marquee-overline{padding-top:21px}
+  .marquee-track>span{font-size:clamp(58px,13vw,115px)}
+  .hero-status{margin:-4px 0 18px}
+}
+@media(max-width:680px){
+  .hero-spark{font-size:11px}
+  .hero-status{font-size:7px}
+  .marquee-overline{align-items:flex-start;gap:10px}
+  .marquee-overline>span{max-width:140px;line-height:1.7}
+  .marquee-overline a{font-size:8px;gap:6px}
+  .marquee-track>span{font-size:clamp(55px,15vw,86px)}
+  .marquee-bottomline{align-items:flex-start;line-height:1.6}
+  .marquee-bottomline span:last-child{text-align:right}
+}
+@media(prefers-reduced-motion:reduce){
+  .marquee-track,.brand>span,.hero-spark{animation:none!important}
+  .lab:hover,.gallery-perspective:hover .portfolio-preview{transform:none!important}
+  .scroll-progress{will-change:auto}
+}

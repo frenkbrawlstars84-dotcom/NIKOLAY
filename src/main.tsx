@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { motion, MotionConfig } from 'motion/react'
 import useReducedMotion from './useReducedMotion'
@@ -15,12 +15,33 @@ import useSectionMotion from './useSectionMotion'
 import Intro, { shouldPlayIntro } from './Intro'
 import './intro.css'
 import './showcase-polish.css'
+import './interaction-polish.css'
 import SceneLayer from './SceneLayer'
 import AccentObject from './AccentObject'
 import type { SceneStatus } from './SceneLayer'
 const capabilities=['Современные лендинги','Сайты для бизнеса','Адаптивные интерфейсы','Интерактивные анимации','Функции и интеграции']
 const demoDescriptions=['Нажмите: идея превращается в действие.','Проведите курсором: интерфейс следует за вами.','Смените формат: композиция подстраивается.','Запустите движение: форма меняет состояние.','Подключите модуль: возможности расширяются.']
 const about='Привет, я Николай. Занимаюсь разработкой современных сайтов для бизнеса. Мне нравится превращать идеи в удобные, привлекательные и технологичные цифровые проекты.'
+function ScrollProgress() {
+ const bar=useRef<HTMLDivElement>(null)
+ useEffect(()=>{
+   let frame=0
+   const update=()=>{
+     cancelAnimationFrame(frame)
+     frame=requestAnimationFrame(()=>{
+       const total=document.documentElement.scrollHeight-window.innerHeight
+       const amount=total>0?Math.min(1,Math.max(0,window.scrollY/total)):0
+       if(bar.current)bar.current.style.transform='scaleX('+amount+')'
+     })
+   }
+   window.addEventListener('scroll',update,{passive:true})
+   window.addEventListener('resize',update)
+   update()
+   return()=>{cancelAnimationFrame(frame);window.removeEventListener('scroll',update);window.removeEventListener('resize',update)}
+ },[])
+ return <div className="scroll-progress" aria-hidden="true" ref={bar}/>
+}
+
 function App(){
  const reduced=!!useReducedMotion(); const root=useRef<HTMLDivElement>(null);const [paused,setPaused]=useState(false);const [menu,setMenu]=useState(false);const [demo,setDemo]=useState([false,false,false,false,false]);
  const [sceneStatus,setSceneStatus]=useState<SceneStatus>('loading')
@@ -31,18 +52,18 @@ function App(){
  const finishIntro=useCallback(()=>setIntro(false),[])
  useSectionMotion(root,reduced)
  const telegram=contacts.telegramUrl
- return <MotionConfig reducedMotion="user">{intro&&<Intro onComplete={finishIntro} onPrepare={prepare}/>}<div inert={intro} aria-hidden={intro||undefined} ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused||intro}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
+ return <MotionConfig reducedMotion="user">{intro&&<Intro onComplete={finishIntro} onPrepare={prepare}/>}<div inert={intro} aria-hidden={intro||undefined} ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused||intro}/><ScrollProgress/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening">
  <section className="hero shell">
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
    <div className="hero-composition">
      <div className="hero-copy">
        <div className="hero-type">
-         <span className="hero-greeting">Привет, я Николай</span>
+         <span className="hero-greeting">Привет, я Николай <span className="hero-spark" aria-hidden="true">✳</span></span>
          <h1><FluidText>За пределами</FluidText><br/><em><FluidText>обычного.</FluidText></em></h1>
        </div>
        <motion.div className="hero-bottom" initial={false} animate={{opacity:1,y:0}} transition={{duration:.4}}>
-         <p>Создаю цифровые впечатления<br/>для вашего бизнеса<span>Веб-сайты, в которых встречаются<br/>эстетика, технологии и смысл.</span></p>
+         <p>Создаю цифровые впечатления<br/>для вашего бизнеса<span>Веб-сайты, в которых встречаются<br/>эстетика, технологии и смысл.</span></p><div className="hero-status"><i aria-hidden="true"/>ОТ ИДЕИ ДО ЗАПУСКА</div>
          <div className="hero-actions"><a className="button light" href="#projects">Мои проекты <ArrowUpRight size={17}/></a><a className="text-link" href="#contact">Обсудить проект <ArrowUpRight size={16}/></a></div>
        </motion.div>
      </div>
@@ -66,6 +87,11 @@ function App(){
        <a className="button light contact-cta" href={telegram} target="_blank" rel="noopener noreferrer"><Send size={16}/>Связаться со мной<ArrowUpRight size={18}/></a>
      </div></div>
    </div>
- </div></section></main><footer className="shell footer"><a className="brand" href="#">NIKOLAY<span>✳</span></a><span>СОЗДАНО НА ПЕРЕСЕЧЕНИИ ДИЗАЙНА И ТЕХНОЛОГИЙ</span><a href="#">НАВЕРХ <ArrowUpRight size={14}/></a></footer></div></MotionConfig>
+ </div></section>
+ <section className="closing-marquee" aria-label="Цифровые идеи в движении">
+   <div className="marquee-overline shell"><span>◈ NIKOLAY / DIGITAL EXPERIENCE</span><a href="#contact">ЕСТЬ ИДЕЯ? ОБСУДИМ <ArrowUpRight size={14}/></a></div>
+   <div className="marquee-viewport" aria-hidden="true"><div className="marquee-track"><span>НЕ ПРОСТО САЙТЫ <em>✳</em> ЦИФРОВЫЕ ВПЕЧАТЛЕНИЯ <em>✳</em>&nbsp;</span><span>НЕ ПРОСТО САЙТЫ <em>✳</em> ЦИФРОВЫЕ ВПЕЧАТЛЕНИЯ <em>✳</em>&nbsp;</span></div></div>
+   <div className="marquee-bottomline shell"><span>DESIGN THAT MOVES WITH YOU</span><span>ДАЛЬШЕ — ИНТЕРЕСНЕЕ</span></div>
+ </section></main><footer className="shell footer"><a className="brand" href="#">NIKOLAY<span>✳</span></a><span>СОЗДАНО НА ПЕРЕСЕЧЕНИИ ДИЗАЙНА И ТЕХНОЛОГИЙ</span><a href="#">НАВЕРХ <ArrowUpRight size={14}/></a></footer></div></MotionConfig>
 }
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)
