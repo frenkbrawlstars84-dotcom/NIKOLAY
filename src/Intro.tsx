@@ -19,12 +19,13 @@ class IntroBoundary extends Component<{ children: ReactNode; fail: () => void },
   render() { return this.state.failed ? null : this.props.children }
 }
 
-export default function Intro({ onComplete }: { onComplete: () => void }) {
+export default function Intro({ onComplete, onPrepare }: { onComplete: () => void; onPrepare: () => void }) {
   const reduced = useReducedMotion()
   const host = useRef<HTMLDivElement>(null)
   const started = useRef(performance.now())
   const elapsed = useRef(0)
   const done = useRef(false)
+  const prepared = useRef(false)
   const readyRef = useRef(false)
   const [ready, setReady] = useState(false)
   const finish = useCallback(() => {
@@ -43,6 +44,7 @@ export default function Intro({ onComplete }: { onComplete: () => void }) {
     const update = () => {
       elapsed.current = (performance.now() - started.current) / 1000
       const state = introFrame(elapsed.current)
+      if(!prepared.current&&elapsed.current>=2.6){prepared.current=true;onPrepare()}
       if (host.current) {
         host.current.style.opacity = String(state.opacity)
         host.current.dataset.introPhase = state.phase
@@ -58,7 +60,7 @@ export default function Intro({ onComplete }: { onComplete: () => void }) {
       cancelAnimationFrame(frame); clearTimeout(loadingTimeout); clearTimeout(deadline)
       document.body.style.overflow = previousOverflow
     }
-  }, [finish])
+  }, [finish,onPrepare])
   return <div ref={host} className={`cosmic-intro ${ready ? 'intro-ready' : ''}`} data-intro-phase="black-hole" role="dialog" aria-modal="true" aria-label="Космическое вступление">
     <div className="intro-static" aria-hidden="true"><svg viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
       <defs><radialGradient id="intro-disk"><stop offset="0" stopColor="#edf1fb"/><stop offset=".5" stopColor="#91a7ce"/><stop offset="1" stopColor="#566889" stopOpacity="0"/></radialGradient></defs>

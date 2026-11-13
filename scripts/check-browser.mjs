@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { chromium } from 'playwright'
 import { checkObjects } from './check-objects.mjs'
+import { checkProjectLoading } from './check-project-loading.mjs'
 
 const servers=[]
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms))
@@ -60,6 +61,7 @@ async function firstVisit(browser,url){
   await page.locator('.intro-ready').waitFor({timeout:1800})
   await page.waitForFunction(()=>document.querySelector('.cosmic-intro')?.dataset.introPhase==='flight')
   await page.waitForFunction(()=>document.querySelector('.cosmic-intro')?.dataset.introPhase==='reveal')
+  assert.equal(await page.locator('.scene-layer').getAttribute('data-scene-status'),'ready','Hero is already drawn before the intro crossfade')
   await page.locator('.cosmic-intro').waitFor({state:'detached',timeout:3000})
   const elapsed=await page.evaluate(()=>performance.now())
   assert(elapsed>=5500&&elapsed<7500,`Intro finishes automatically in ~5.8s (observed ${elapsed}ms)`)
@@ -141,6 +143,27 @@ try{
     assert.deepEqual(errors,[])
     await page.close()
     console.log(`PASS ${url}: stable hero interaction, ordinary scroll, both project links, idea CTA, mobile menu and contacts`)
+  }
+  {
+    const page=await pageWithoutIntro(browser,{viewport:{width:1366,height:768}})
+    let release
+    const hold=new Promise(resolve=>{release=resolve})
+    await page.route('**/assets/ProjectScreenScene-*.js',async route=>{await hold;await route.continue()})
+    await page.goto(preview)
+    await page.locator('.project-screens').scrollIntoViewIfNeeded()
+    assert(await page.locator('.screen-static-fallback').isVisible(),'Cover is visible while WebGL module is pending')
+    release()
+    await page.locator('.project-screens[data-screen-status="ready"]').waitFor()
+    assert(await page.locator('.project-screens canvas').isVisible())
+    for(const id of ['projects','contact','capabilities','about','projects']){
+      await page.locator(`#${id}`).scrollIntoViewIfNeeded()
+      await page.waitForTimeout(550)
+      const headings=page.locator(`#${id} .fluid-line`)
+      assert(await headings.evaluateAll(nodes=>nodes.every(e=>e.dataset.typeReady==='true')),'Visible headings finish promptly, including after fast jumps')
+      assert(await page.locator(`#${id} .fluid-word`).evaluateAll(nodes=>nodes.every(e=>getComputedStyle(e).overflow==='visible')),'Full glyphs have no clipping mask')
+    }
+    await page.close()
+    console.log('PASS loading/reveals: delayed gallery keeps its cover; fast scroll settles complete headings within 550ms')
   }
   for(const failure of ['intro-module','intro-timeout','intro-no-webgl','intro-shader','intro-context']){
     const page=await browser.newPage({viewport:{width:390,height:844}})
@@ -231,6 +254,7 @@ try{
     await page.close()
     console.log('PASS cube: real 17+9 layer batches, 54 white stickers, pause/resume and reduced motion')
   }
+  await checkProjectLoading(browser,dev)
   await checkObjects(browser,preview)
   console.log('All browser regressions passed.')
 }finally{await browser?.close();for(const server of servers)server.kill('SIGTERM')}

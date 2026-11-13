@@ -53,3 +53,7 @@
 .screen-static-fallback.cover-digital>span,.screen-static-fallback.cover-digital>small{color:#d2dff5}
 .project-screens{height:clamp(300px,38vw,550px)}
 @media(max-width:680px){.project-screens{height:clamp(235px,74vw,335px)}}
+
+.screen-render-layer{position:absolute;inset:0}
+.screen-static-fallback{z-index:1;pointer-events:none}
+.screen-static-fallback img{position:absolute;inset:0;object-fit:contain;background:#151619;border-radius:6px;z-index:1}

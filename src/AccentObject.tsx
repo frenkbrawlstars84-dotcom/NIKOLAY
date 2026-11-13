@@ -31,7 +31,7 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   const fail = useCallback(() => { phase.current = 'fallback'; setStatus('fallback') }, [])
   const ready = useCallback(() => { if (phase.current === 'loading') { phase.current = 'ready'; setStatus('ready') } }, [])
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => { setInView(entry.isIntersecting); if (entry.isIntersecting) setSeen(true) }, { rootMargin: '80px' })
+    const observer = new IntersectionObserver(([entry]) => { setInView(entry.isIntersecting); if (entry.isIntersecting) setSeen(true) }, { rootMargin: '400px' })
     if (host.current) observer.observe(host.current)
     const media = matchMedia('(max-width: 900px)')
     const resize = () => setLow(media.matches || navigator.hardwareConcurrency <= 4)
@@ -46,7 +46,7 @@ export default function AccentObject({ kind, reduced, paused }: { kind: AccentKi
   }, [seen, status, inView, visible, fail])
   const fallback = <AccentFallback kind={kind}/>
   const active = ownsFrame && inView && visible && !paused && !reduced
-  return <motion.figure ref={host} className={`accent-object accent-${kind}`} data-accent-status={status} data-scene-running={active} initial={reduced?false:{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.15}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
+  return <motion.figure ref={host} className={`accent-object accent-${kind}`} data-accent-status={status} data-scene-running={active} initial={reduced?false:{opacity:1,y:10}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:0,margin:"160px"}} transition={{duration:.4,ease:[.22,1,.36,1]}}>
     <div className="accent-stage">{!seen || status === 'fallback' ? fallback : <AccentBoundary fail={fail} fallback={fallback}><Suspense fallback={fallback}><AccentScene kind={kind} reduced={reduced} paused={!active} low={low} onReady={ready} onUnavailable={fail}/></Suspense></AccentBoundary>}</div>
     <figcaption>{kind === 'cube' ? 'СЛОЖНОЕ — ИЗ ПРОСТЫХ ЧАСТЕЙ' : kind === 'glass' ? 'СТЕКЛО / ПРЕЛОМЛЕНИЕ / СВЕТ' : 'ПОТЯНИТЕ ДЛЯ ВРАЩЕНИЯ'}</figcaption>
   </motion.figure>

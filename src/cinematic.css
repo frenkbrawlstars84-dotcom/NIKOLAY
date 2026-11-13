@@ -9,7 +9,7 @@
 .hero-visual .experience-art canvas{touch-action:pan-y!important}
 .hero h1>.fluid-line{font-family:Arial,Helvetica,sans-serif;font-style:normal;color:inherit;letter-spacing:inherit}
 .hero h1 em{font-family:Georgia,serif;font-style:italic;font-weight:400;letter-spacing:-3px;color:#c3c8d1}
-.fluid-word{display:inline-block;overflow:hidden;vertical-align:bottom;padding:.13em .06em;margin:-.13em -.06em;perspective:700px}
+.fluid-word{display:inline-block;overflow:visible;vertical-align:baseline;padding:.16em .08em;margin:-.16em -.08em}
 .fluid-ink{display:inline-block;transform-origin:50% 100%;backface-visibility:hidden}
 .fluid-ink{position:relative}
 .fluid-sheen{position:absolute;inset:0;opacity:0;pointer-events:none;color:transparent;background:linear-gradient(110deg,transparent 32%,#fff9 48%,#d3dbe466 52%,transparent 66%);background-size:240% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -37,7 +37,7 @@
 .depth-ruler{display:flex;align-items:center;gap:14px;font-size:6px;letter-spacing:1.5px;color:#58677e;margin-top:40px}.depth-ruler i{display:block;width:90px;height:1px;background:repeating-linear-gradient(90deg,#7c8ba7 0,#7c8ba7 1px,transparent 1px,transparent 7px)}
 .gallery-index button{transition:color .3s,padding-left .3s}.gallery-index button.selected{padding-left:9px}
 .gallery-controls{position:relative;z-index:4;padding-top:22px;padding-left:2px}
-.contact-title .fluid-word{overflow:clip}
+.contact-title .fluid-word{overflow:visible}
 .telegram-address{display:flex;align-items:center;gap:25px;flex-wrap:wrap}
 .telegram-direct{font-size:11px;color:#a1b0c7;border-bottom:1px solid #9eabc04d;padding:5px 0;transition:color .25s,border-color .25s}
 .telegram-direct:hover{color:#fff;border-color:#e1ebfb}

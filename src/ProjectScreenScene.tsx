@@ -9,7 +9,7 @@ import type { Project } from './projects'
 import CanvasHealth from './CanvasHealth'
 import StudioLighting from './StudioLighting'
 
-export type ScreenSceneProps = { position: MotionValue<number>; pointer: MutableRefObject<{x:number;y:number}>; reduced:boolean; paused:boolean; present:boolean; low:boolean; onReady:()=>void; onUnavailable:()=>void }
+export type ScreenSceneProps = { position: MotionValue<number>; pointer: MutableRefObject<{x:number;y:number}>; reduced:boolean; paused:boolean; present:boolean; low:boolean; onReady:()=>void; onUnavailable:()=>void; onImageReady:(index:number)=>void }
 function placeholder(project: Project) {
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=800
   const ctx=canvas.getContext('2d')!
@@ -34,14 +34,15 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
   },[project,props.low])
   useEffect(()=>{
     if(!project.image)return
-    let disposed=false,loaded:THREE.Texture|undefined
+    let disposed=false,loaded:THREE.Texture|undefined,frame=0
     const texture=new THREE.TextureLoader().load(project.image,value=>{
       if(disposed){value.dispose();return}
       loaded=value;value.colorSpace=THREE.SRGBColorSpace;value.anisotropy=Math.min(8,gl.capabilities.getMaxAnisotropy());value.needsUpdate=true
       resources.face.map=value;resources.face.needsUpdate=true;invalidate()
-    },undefined,()=>{ /* Retain the explicitly labeled cover; never blank the app. */ })
-    return()=>{disposed=true;if(loaded)loaded.dispose();else texture.dispose()}
-  },[project.image,resources,gl,invalidate])
+      frame=requestAnimationFrame(()=>{if(!disposed)props.onImageReady(index)})
+    },undefined,()=>{if(!disposed){invalidate();frame=requestAnimationFrame(()=>props.onImageReady(index))} /* Retain the explicitly labeled cover. */ })
+    return()=>{disposed=true;cancelAnimationFrame(frame);if(loaded)loaded.dispose();else texture.dispose()}
+  },[project.image,resources,gl,invalidate,props.onImageReady,index])
   useEffect(()=>()=>{resources.cover.dispose();resources.frame.dispose();resources.screen.dispose();resources.body.dispose();resources.face.dispose()},[resources])
   useFrame((_,delta)=>{
     if(!group.current)return

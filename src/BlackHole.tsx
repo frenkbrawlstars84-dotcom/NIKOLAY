@@ -47,13 +47,16 @@ const rayFragment = `
     float spin=uTime*.24/(r*sqrt(r))+r*.13;
     float cs=cos(spin),sn=sin(spin);
     vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
-    float clouds=fbm(orbit*r*2.2+fbm(plane*.7)*1.5);
+    // Domain warping breaks up coherent, repeated radial ribbons without
+    // extra raymarching or a lower-resolution postprocess.
+    vec2 warp=vec2(noise(plane*1.7+2.3),noise(plane*1.3-5.1))-.5;
+    vec2 flow=orbit*r+warp*.7;
+    float clouds=fbm(flow*2.4);
     // Uneven orbital filaments retain texture at close range without cloudy,
     // screen-space blur. Exposure is bounded before adding the small glow.
-    vec2 flow=orbit*r;
-    float filaments=fbm(vec2(flow.x*5.7+flow.y*1.4,flow.y*2.3-flow.x*.3)+clouds*1.3);
-    float detail=noise(orbit*r*15.);
-    float density=.08+pow(clouds,1.7)*.85+pow(filaments,2.8)*.85+pow(detail,6.)*.05;
+    float filaments=fbm(vec2(flow.x*3.8+flow.y*2.1,flow.y*3.3-flow.x*.7)+clouds*1.3);
+    float detail=fbm(flow*12.);
+    float density=.08+pow(clouds,1.7)*.85+pow(filaments,2.8)*.85+pow(detail,3.)*.19;
     float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
     float doppler=.86+.38*dot(tangent,-direction);

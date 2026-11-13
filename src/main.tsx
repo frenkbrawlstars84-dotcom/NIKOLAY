@@ -25,10 +25,12 @@ function App(){
  const [sceneStatus,setSceneStatus]=useState<SceneStatus>('loading')
  const toggle=(i:number)=>setDemo(v=>v.map((x,n)=>n===i?!x:x))
  const [intro,setIntro]=useState(shouldPlayIntro)
+ const [prepareHero,setPrepareHero]=useState(!intro)
+ const prepare=useCallback(()=>setPrepareHero(true),[])
  const finishIntro=useCallback(()=>setIntro(false),[])
  useSectionMotion(root,reduced)
  const telegram=contacts.telegramUrl
- return <MotionConfig reducedMotion="user">{intro&&<Intro onComplete={finishIntro}/>}<div inert={intro} aria-hidden={intro||undefined} ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused||intro}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
+ return <MotionConfig reducedMotion="user">{intro&&<Intro onComplete={finishIntro} onPrepare={prepare}/>}<div inert={intro} aria-hidden={intro||undefined} ref={root} className={`site-root visual-status-${sceneStatus}`}><AmbientBackground reduced={reduced} paused={paused||intro}/><a className="skip" href="#main">К содержимому</a><header className="header"><a className="brand" href="#">NIKOLAY<span>✳</span><small>DIGITAL EXPERIENCE</small></a><nav aria-label="Навигация" className={menu?'nav open':'nav'}>{[['Работы','#projects'],['Подход','#about'],['Возможности','#capabilities'],['Контакты','#contact']].map(([name,href])=><a key={href} href={href} onClick={()=>setMenu(false)}>{name}</a>)}</nav><a className="header-contact" href="#contact">Обсудим идею <ArrowUpRight size={15}/></a><button className="menu" aria-expanded={menu} aria-label={menu?'Закрыть меню':'Открыть меню'} onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></header>
  <main id="main"><div className="opening">
  <section className="hero shell">
    <div className="hero-meta"><span><i/> НЕЗАВИСИМЫЙ ВЕБ-РАЗРАБОТЧИК</span><span>DESIGN × CODE × EXPERIENCE</span></div>
@@ -38,13 +40,13 @@ function App(){
          <span className="hero-greeting">Привет, я Николай</span>
          <h1><FluidText>За пределами</FluidText><br/><em><FluidText>обычного.</FluidText></em></h1>
        </div>
-       <motion.div className="hero-bottom" initial={{opacity:0,y:reduced?0:15}} animate={{opacity:1,y:0}} transition={{duration:.7,delay:.35}}>
+       <motion.div className="hero-bottom" initial={false} animate={{opacity:1,y:0}} transition={{duration:.4}}>
          <p>Создаю цифровые впечатления<br/>для вашего бизнеса<span>Веб-сайты, в которых встречаются<br/>эстетика, технологии и смысл.</span></p>
          <div className="hero-actions"><a className="button light" href="#projects">Мои проекты <ArrowUpRight size={17}/></a><a className="text-link" href="#contact">Обсудить проект <ArrowUpRight size={16}/></a></div>
        </motion.div>
      </div>
      <div className="hero-visual">
-       <div className="experience-art"><SceneLayer reduced={reduced} paused={paused||intro} enabled={!intro} onStatus={setSceneStatus}/></div>
+       <div className="experience-art"><SceneLayer reduced={reduced} paused={paused||intro} enabled={prepareHero||!intro} onStatus={setSceneStatus}/></div>
        <div className="visual-coordinate" aria-hidden="true"><span>01 / PROCEDURAL FORM</span><span>REALTIME · INTERACTIVE</span></div>
      </div>
    </div>
