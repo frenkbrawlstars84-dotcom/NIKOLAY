@@ -23,7 +23,8 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Capture real public demo previews where available
-        run: npm run capture:projects || echo 'Public demo capture unavailable: labelled design covers retained'
+        run: |
+          npm run capture:projects || echo "Public demo capture unavailable; using design covers"
       - name: Verify build and site behavior
         run: npm run test:browser
       - name: Package ready-to-publish Netlify site
