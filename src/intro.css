@@ -1,9 +1,9 @@
 /* Visible immediately, including before the lazy WebGL module is ready. */
 .cosmic-intro{position:fixed;inset:0;z-index:1000;background:#050609;color:#edf1f8;isolation:isolate}
 .cosmic-intro>div:not(.intro-label){position:absolute;inset:0}
-.intro-static{z-index:-1;background:#050609}
+.intro-static{z-index:1;background:#050609;pointer-events:none;opacity:1;transition:opacity .4s ease}
 .intro-static svg{height:100%;width:100%;opacity:.85}
-.intro-ready .intro-static{visibility:hidden}
+.intro-ready .intro-static{opacity:0;visibility:hidden;transition:opacity .4s ease,visibility 0s linear .4s}
 .intro-label{position:absolute;left:clamp(22px,4vw,64px);bottom:34px;font-size:13px;font-weight:600;letter-spacing:3px;pointer-events:none}
 .intro-label span{display:block;margin-top:8px;font-size:7px;font-weight:400;letter-spacing:2px;color:#aebbd1}
 .intro-skip{position:absolute;right:clamp(22px,4vw,64px);bottom:28px;padding:14px 18px;display:flex;gap:30px;align-items:center;font-size:12px;border:1px solid #b9c6df66;border-radius:3px;background:#0b0e16c9;color:#edf1f8;z-index:2}
