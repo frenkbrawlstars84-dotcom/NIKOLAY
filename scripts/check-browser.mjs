@@ -50,7 +50,7 @@ async function checkMain(page, url) {
   await gallery.scrollIntoViewIfNeeded()
   assert(await gallery.locator('.portfolio-preview').isVisible(), 'Project preview is immediate')
   assert.equal(await page.locator('.closing-marquee .marquee-track > span').count(), 2)
-  assert(await page.locator('.scroll-progress').isVisible(), 'Scroll progress is present')
+  assert.equal(await page.locator('.scroll-progress').count(), 1, 'Scroll progress exists even at zero width')
   assert.equal(await gallery.locator('canvas').count(), 0, 'Gallery has no second WebGL renderer')
 
   for (const [name, expected] of [
