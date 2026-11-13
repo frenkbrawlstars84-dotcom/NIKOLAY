@@ -70,13 +70,20 @@ function Flight({ elapsed, low }: { elapsed: RefObject<number>; low: boolean }) 
     resources.material.uniforms.uTravel.value=state.travel
     resources.material.uniforms.uFlight.value=state.flight
     galaxies.current?.children.forEach((sprite,i)=>{
-      const z=-18-i*20+state.travel
-      sprite.position.set((i===0?-1:1)*(low?1.3:3.2),i===0?.65:-.8,z)
-      const height=(low?6.3:9)*(i===0?1:1.12)
-      sprite.scale.set(height*1,height,1)
-      resources.materials[i].opacity=(resources.materials[i].map?1:0)*state.flight*THREE.MathUtils.smoothstep(-z,3,7)*(i===0?1:.85)
-      resources.materials[i].rotation=(i===0?-.08:.15)+state.travel*.001
-      sprite.visible=z<0&&resources.materials[i].opacity>0
+      // Keep two distant galaxies visible at different moments of the flight.
+      // The previous -18/-38 layout sent both behind the camera long before
+      // the intro crossfade, leaving an empty final stretch.
+      const z=(i===0?-25:-57)+state.travel
+      const x=(i===0?-1:1)*(low?1.25:2.65)
+      sprite.position.set(x,i===0?.85:-.55,z)
+      // At these scales the galaxy atlas stays recognizable instead of
+      // expanding into a blurred, full-screen pancake near the camera.
+      const height=(low?3.5:4.5)*(i===0?1:1.1)
+      sprite.scale.set(height,height,1)
+      const nearFade=THREE.MathUtils.smoothstep(-z,6,13)
+      resources.materials[i].opacity=(resources.materials[i].map?1:0)*state.flight*nearFade*(i===0?.92:1)
+      resources.materials[i].rotation=(i===0?-.12:.19)+state.travel*.0007
+      sprite.visible=z<0&&resources.materials[i].opacity>.005
     })
   })
   return <><lineSegments geometry={resources.geometry} material={resources.material} frustumCulled={false} renderOrder={20}/><group ref={galaxies}>
