@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react'
+import { ArrowUp, ArrowUpRight, MoveUp } from 'lucide-react'
 import './intro.css'
 
 const SESSION_KEY = 'nikolay:intro-seen'
 const isPreview = () => new URLSearchParams(window.location.search).get('previewIntro') === '1'
+const clamp = (value: number) => Math.min(1, Math.max(0, value))
 
 export function shouldPlayIntro() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
@@ -11,32 +13,89 @@ export function shouldPlayIntro() {
   try { return window.sessionStorage.getItem(SESSION_KEY) !== '1' } catch { return true }
 }
 
-/** A deliberately lightweight, resolution-independent intro: no GPU scene to load. */
+/** A visitor-controlled, resolution-independent journey into the portfolio. */
 export default function Intro({ onComplete, onPrepare }: { onComplete: () => void; onPrepare: () => void }) {
+  const [progress, setProgress] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const progressRef = useRef(0)
   const finished = useRef(false)
+  const entering = useRef(false)
+  const releaseTimer = useRef<number | undefined>(undefined)
+  const activePointer = useRef<{ id: number; y: number; starting: number } | null>(null)
+
+  const changeProgress = useCallback((value: number) => {
+    if (entering.current || finished.current) return
+    progressRef.current = clamp(value)
+    setProgress(progressRef.current)
+  }, [])
   const finish = useCallback(() => {
     if (finished.current) return
     finished.current = true
+    window.clearTimeout(releaseTimer.current)
     if (!isPreview()) {
-      try { window.sessionStorage.setItem(SESSION_KEY, '1') } catch { /* blocked storage */ }
+      try { window.sessionStorage.setItem(SESSION_KEY, '1') } catch { /* storage disabled */ }
     }
     onComplete()
   }, [onComplete])
+  const enter = useCallback(() => {
+    if (finished.current || entering.current) return
+    entering.current = true
+    progressRef.current = 1
+    setProgress(1)
+    setLeaving(true)
+    releaseTimer.current = window.setTimeout(finish, 620)
+  }, [finish])
 
   useEffect(() => {
-    const oldOverflow = document.body.style.overflow
+    const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    // Prepare the portfolio while the introduction is visible, not after it.
-    onPrepare()
-    const transition = window.setTimeout(() => setLeaving(true), 1900)
-    const complete = window.setTimeout(finish, 2600)
-    return () => {
-      clearTimeout(transition)
-      clearTimeout(complete)
-      document.body.style.overflow = oldOverflow
+    onPrepare() // Load the hero before releasing the curtain.
+    const onKey = (event: KeyboardEvent) => {
+      if (['ArrowDown', 'PageDown', ' ', 'Enter'].includes(event.key) && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        // Buttons have native Enter/Space behavior; don't intercept them.
+        if (document.activeElement instanceof HTMLButtonElement) return
+        event.preventDefault()
+        enter()
+      }
+      if (event.key === 'Escape') finish()
     }
-  }, [onPrepare, finish])
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.clearTimeout(releaseTimer.current)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [onPrepare, enter, finish])
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (entering.current || (event.target instanceof Element && event.target.closest('button'))) return
+    if (event.button !== 0 && event.pointerType !== 'touch') return
+    activePointer.current = { id: event.pointerId, y: event.clientY, starting: progressRef.current }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const active = activePointer.current
+    if (!active || active.id !== event.pointerId) return
+    const distance = Math.min(330, Math.max(180, window.innerHeight * .37))
+    changeProgress(active.starting + (active.y - event.clientY) / distance)
+  }
+  const onPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const active = activePointer.current
+    if (!active || active.id !== event.pointerId) return
+    activePointer.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    if (progressRef.current >= .66) enter()
+    else changeProgress(0)
+  }
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    if (entering.current) return
+    // The journey responds to the user's actual scroll rather than autoplaying.
+    const adjusted = clamp(event.deltaY / (event.deltaMode === 1 ? 55 : event.deltaMode === 2 ? 2.2 : 780))
+    const next = clamp(progressRef.current + adjusted)
+    if (next >= .92) enter()
+    else changeProgress(next)
+  }
 
   const strands = useMemo(() => Array.from({ length: 96 }, (_, index) => {
     let path = ''
@@ -45,15 +104,19 @@ export default function Intro({ onComplete, onPrepare }: { onComplete: () => voi
       const t = step / 50
       const radius = 24 + 535 * Math.pow(t, .87)
       const angle = base + 2.65 * Math.pow(1 - t, 1.28)
-      const x = 500 + Math.cos(angle) * radius
-      const y = 500 + Math.sin(angle) * radius
-      path += (step ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2) + ' '
+      path += (step ? 'L' : 'M') + (500 + Math.cos(angle) * radius).toFixed(2) + ' ' +
+        (500 + Math.sin(angle) * radius).toFixed(2) + ' '
     }
     return path
   }), [])
 
-  return <div className={'cosmic-intro' + (leaving ? ' is-leaving' : '')} role="dialog" aria-modal="true" aria-label="Короткое космическое вступление">
+  const introStyle = { '--pull': progress } as CSSProperties
+  return <div className={'cosmic-intro interactive-intro' + (leaving ? ' is-leaving' : '')}
+    style={introStyle} role="dialog" aria-modal="true" aria-label="Войти в цифровую вселенную NIKOLAY"
+    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd}
+    onPointerCancel={onPointerEnd} onWheel={onWheel}>
     <div className="intro-grain" aria-hidden="true" />
+    <div className="intro-depth" aria-hidden="true" />
     <div className="intro-vortex" aria-hidden="true">
       <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" focusable="false">
         <g className="intro-strands">
@@ -69,7 +132,13 @@ export default function Intro({ onComplete, onPrepare }: { onComplete: () => voi
       <h2>За пределами<br/><em>обычного.</em></h2>
       <span>Веб-дизайн. Разработка. Интерактив.</span>
     </div>
-    <div className="intro-progress" aria-hidden="true"><i /></div>
-    <button type="button" className="intro-skip" onClick={finish}>Пропустить <ArrowUpRight size={16} aria-hidden="true" /></button>
+    <div className="intro-guidance">
+      <div className="intro-drag-symbol" aria-hidden="true"><MoveUp size={21}/></div>
+      <div className="intro-guide-text"><strong>ПОТЯНИТЕ ВВЕРХ, ЧТОБЫ ВОЙТИ</strong><span>Проведите пальцем, потяните мышью или прокрутите вниз</span></div>
+      <button className="intro-enter" type="button" onClick={enter}>Войти в портфолио <ArrowUpRight size={15} /></button>
+    </div>
+    <div className="intro-progress" role="progressbar" aria-label="Погружение в сайт"
+      aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><i/></div>
+    <button type="button" className="intro-skip" onClick={finish}>Пропустить <ArrowUp size={15} aria-hidden="true" /></button>
   </div>
 }
