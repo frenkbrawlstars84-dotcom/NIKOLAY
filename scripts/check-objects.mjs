@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 
 export async function checkObjects(browser,url) {
   const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'})
+  await page.addInitScript(()=>sessionStorage.setItem('nikolay:intro-seen','1'))
   const errors=[]
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
   await page.addInitScript(()=>{
@@ -56,6 +57,7 @@ export async function checkObjects(browser,url) {
   assert.deepEqual(errors,[])
   await page.close()
   const mobile=await browser.newPage({viewport:{width:390,height:844}})
+  await mobile.addInitScript(()=>sessionStorage.setItem('nikolay:intro-seen','1'))
   await mobile.addInitScript(()=>Object.defineProperty(navigator,'hardwareConcurrency',{get:()=>2}))
   await mobile.goto(url);await mobile.evaluate(()=>document.documentElement.style.scrollBehavior='auto')
   for(const kind of ['screens','signal','glass']){
@@ -75,6 +77,7 @@ export async function checkObjects(browser,url) {
   assert.equal(await mobile.locator('h1').count(),1)
   await mobile.close()
   const broken=await browser.newPage()
+  await broken.addInitScript(()=>sessionStorage.setItem('nikolay:intro-seen','1'))
   await broken.route('**/assets/ProjectScreenScene-*.js',route=>route.abort())
   await broken.goto(url);await broken.locator('.project-screens').scrollIntoViewIfNeeded()
   await broken.locator('.project-screens[data-screen-status="fallback"]').waitFor()

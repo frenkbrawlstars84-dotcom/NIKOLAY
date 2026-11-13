@@ -1,15 +1,12 @@
-/* One persistent WebGL viewport, driven by the native scroll position. */
+/* The hero and gallery follow normal document flow. No scroll-driven flight. */
 .site-root{overflow:clip}
-.experience-track{position:relative;height:245svh}
-.experience-pin{position:sticky;top:0;height:100svh;isolation:isolate;overflow:clip;background:#090a0bf5}
-.experience-art{position:absolute;inset:0;z-index:0;pointer-events:none;clip-path:var(--intro-clip,inset(0 0 0 50%));will-change:clip-path}
-.experience-pin .hero{position:relative;z-index:2;height:100%;min-height:0;max-height:none;pointer-events:none}
-.experience-pin .hero-composition{min-height:0;padding-block:26px 20px}
-.experience-pin .hero-copy,.experience-pin .hero-foot{pointer-events:auto}
-.experience-pin .hero-visual{min-height:0;height:100%;overflow:visible}
-.experience-pin .hero-copy{padding-block:30px;will-change:clip-path}
-.experience-pin .hero-foot{margin-top:0;padding-bottom:3px;background:#090a0bcc;pointer-events:auto}
-.experience-pin .hero-meta{pointer-events:auto}
+.experience-art{position:absolute;inset:0;z-index:0}
+.scene-layer,.scene-host{width:100%;height:100%}
+.fallback-position{position:absolute;inset:0}
+.scene-fallback{width:100%;height:100%}
+.scene-host{cursor:pointer;touch-action:pan-y}
+.scene-host:focus-visible{outline:1px solid #b9cae8;outline-offset:-5px}
+.hero-visual .experience-art canvas{touch-action:pan-y!important}
 .hero h1>.fluid-line{font-family:Arial,Helvetica,sans-serif;font-style:normal;color:inherit;letter-spacing:inherit}
 .hero h1 em{font-family:Georgia,serif;font-style:italic;font-weight:400;letter-spacing:-3px;color:#c3c8d1}
 .fluid-word{display:inline-block;overflow:hidden;vertical-align:bottom;padding:.13em .06em;margin:-.13em -.06em;perspective:700px}
@@ -17,20 +14,11 @@
 .fluid-ink{position:relative}
 .fluid-sheen{position:absolute;inset:0;opacity:0;pointer-events:none;color:transparent;background:linear-gradient(110deg,transparent 32%,#fff9 48%,#d3dbe466 52%,transparent 66%);background-size:240% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .fluid-line[data-type-ready="true"] .fluid-ink{transform:none;filter:none;will-change:auto}
-.passage-guides{position:absolute;left:56px;right:56px;top:40px;z-index:4;display:flex;justify-content:space-between;align-items:center;opacity:0;font-size:7px;letter-spacing:2px;color:#b4bfce;pointer-events:none}
-.passage-guides>span{padding:8px;background:#090a0bbf}
-.passage-meter{position:absolute;right:8px;top:38px;width:130px;height:1px;background:#ffffff20}
-.passage-meter i{display:block;width:100%;height:100%;background:#cbd8eb;transform-origin:0% 50%}
-.passage-copy{position:absolute;top:36%;left:0;right:0;z-index:1;text-align:center;padding:45px 20px;clip-path:inset(100% 0 0 0);pointer-events:none;background:radial-gradient(ellipse at center,#090a0bf5 0%,#090a0b99 35%,transparent 69%)}
-.passage-copy>span{font-size:8px;letter-spacing:2.5px;color:#9dabbf}
-.passage-copy p{font-size:clamp(35px,5.4vw,82px);font-weight:400;line-height:1.08;letter-spacing:-2.7px;margin:25px 0}
-.passage-copy em{font-family:Georgia,serif;color:#c2cbd9;font-weight:400}
-.fallback-position{position:absolute;left:var(--frame-left);top:var(--frame-top);width:var(--frame-width);height:var(--frame-height)}
 .about{perspective:1400px;background:#090a0bf5}
 .about-body{transform-origin:50% 0%;transform-style:preserve-3d}
 /* The projects are HTML planes in a scrollable perspective stage. */
-.gallery-runway{position:relative;height:220svh}
-.gallery-runway>.gallery-layout{position:sticky;top:90px;align-items:start;padding:25px 0 45px}
+.gallery-runway{position:relative;height:auto}
+.gallery-runway>.gallery-layout{position:relative;top:auto;align-items:start;padding:25px 0 45px}
 .gallery-perspective{position:relative;perspective:1500px;min-width:0;padding-right:35px;transform-style:preserve-3d}
 .project-deck{position:relative;height:calc(clamp(230px,34svh,355px) + 220px);transform-style:preserve-3d}
 .project-plane{position:absolute;inset:0;transform-style:preserve-3d;pointer-events:none;will-change:transform,opacity}
@@ -56,74 +44,17 @@
 .contact-cta{padding-inline:22px;gap:26px;transition:transform .3s,box-shadow .3s,background .3s}
 .contact-cta:hover{box-shadow:0 5px 35px #bfdbff18}
 .contact-cta:hover svg:last-child{transform:translate(3px,-3px)}.contact-cta svg{transition:transform .3s}
-@media(max-width:1050px){.passage-guides{left:32px;right:32px}.gallery-perspective{padding-right:25px}}
-@media(max-width:900px){
-  .experience-track{height:220svh}
-  .experience-pin .hero{padding-top:18px;padding-bottom:17px;display:flex}
-  .experience-pin .hero-composition{display:flex;flex-direction:column;gap:5px;padding-top:25px;padding-bottom:10px;min-height:0;align-items:stretch}
-  .experience-pin .hero-copy{padding:0;flex-shrink:0;max-width:none}
-  .experience-pin .hero-visual{flex:1;min-height:160px;max-height:390px;width:100%;margin-inline:auto}
-  .experience-pin .hero h1{font-size:clamp(44px,7.6vw,64px);line-height:1.03;margin-top:15px}
-  .experience-pin .hero-bottom{margin-top:20px}
-  .experience-pin .hero-bottom p{margin-bottom:18px}
-  .experience-pin .hero-foot{padding-top:14px;font-size:6px}
-  .experience-pin .visual-coordinate{bottom:2px}
-  .passage-copy{top:38%;padding:35px 10px}
-  .gallery-runway{height:200svh}
-  .project-surface .project-info{padding:16px 9px 6px}
-}
+
 @media(max-width:680px){
-  .experience-pin .hero-composition{padding-top:24px;padding-bottom:5px;gap:14px}
-  .experience-pin .hero h1{font-size:clamp(40px,11.5vw,60px);letter-spacing:-2.4px}
-  .hero h1 em{letter-spacing:-2px}
-  .experience-pin .hero-greeting{font-size:12px}
-  .experience-pin .hero-bottom p{font-size:15px;line-height:1.5;margin-bottom:18px}
-  .experience-pin .hero-bottom p>span{font-size:10px;margin-top:9px;line-height:1.65}
-  .experience-pin .hero-visual{max-height:310px;min-height:145px}
-  .experience-pin .hero-actions{gap:17px}
-  .experience-pin .hero-foot{font-size:5px;padding-top:12px}
-  .experience-pin .hero-foot button{font-size:6px}
-  .passage-guides{left:16px;right:16px;top:22px;font-size:5px;letter-spacing:1px}
-  .passage-meter{width:90px;top:30px}
-  .passage-copy{top:37%}.passage-copy p{font-size:clamp(29px,8.5vw,48px);letter-spacing:-1px}.passage-copy>span{font-size:6px;letter-spacing:1.2px}
-  .gallery-runway>.gallery-layout{top:60px;gap:20px;padding-top:0}
-  .gallery-perspective{padding-right:20px}
-  .project-deck{height:calc(clamp(210px,31svh,285px) + 210px)}
-  .project-surface{padding:8px}
-  .project-surface .project-image{height:clamp(210px,31svh,285px)}
-  .project-surface .project-info h3{font-size:20px}
-  .project-frame-bar{font-size:5px;letter-spacing:.8px;min-height:22px}
-  .project-info p{line-height:1.5}
-  .depth-ruler{display:none}
-  .gallery-floor{height:200px;bottom:-25px}
-  .telegram-address{gap:12px;align-items:flex-start;flex-direction:column}
+ .hero h1 em{letter-spacing:-2px}
+ .gallery-perspective{padding-right:0}
+ .gallery-runway>.gallery-layout{align-items:stretch}
+ .gallery-index{width:100%;min-width:0}
+ .project-info p{line-height:1.5}
+ .depth-ruler{display:none}
+ .telegram-address{gap:12px;align-items:flex-start;flex-direction:column}
 }
-@media(max-width:374px){.experience-pin .hero h1{font-size:39px}.experience-pin .hero-bottom p{font-size:14px}.experience-pin .hero-actions{gap:13px}.experience-pin .hero-visual{min-height:130px}.visual-coordinate{font-size:5px}.project-surface .project-info h3{font-size:18px}}
-@media(max-height:650px),(prefers-reduced-motion:reduce){
-  .experience-track{height:auto}.experience-pin{position:relative;height:auto}
-  .experience-pin .hero{height:auto;min-height:calc(100svh - 78px);pointer-events:auto}
-  .experience-pin .hero-composition{min-height:590px}
-  .experience-pin .hero-visual{min-height:330px}
-  .passage-copy,.passage-guides{display:none}
-  .experience-art{will-change:auto}
-  .gallery-runway{height:auto}.gallery-runway>.gallery-layout{position:relative;top:auto}
-}
-@media(prefers-reduced-motion:reduce){.fluid-ink{transform:none!important;filter:none!important}.project-plane:not(.is-active){visibility:hidden}.project-surface,.project-parallax{transform:none!important}.project-plane{will-change:auto}}
-.gallery-perspective{width:100%}
-@media(max-width:680px){.gallery-runway>.gallery-layout{align-items:stretch}.gallery-index{width:100%;min-width:0}}
-
-/* A failed or pending decoration must never create an empty pinned viewport. */
-.scene-layer{width:100%;height:100%;pointer-events:none}
-.experience-art canvas{pointer-events:none!important}
-.site-root:not(.visual-status-ready) .experience-track{height:auto}
-.site-root:not(.visual-status-ready) .experience-pin{position:relative;height:auto}
-.site-root:not(.visual-status-ready) .experience-pin .hero{height:auto;min-height:calc(100svh - 78px);pointer-events:auto}
-.site-root:not(.visual-status-ready) .hero-composition{min-height:590px}
-.site-root:not(.visual-status-ready) .hero-visual{min-height:330px}
-.site-root:not(.visual-status-ready) .passage-copy,.site-root:not(.visual-status-ready) .passage-guides{display:none}
-.visual-status-fallback .hero-copy,.visual-status-fallback .hero-type,.visual-status-fallback .hero-bottom{opacity:1!important;clip-path:none!important;transform:none!important;visibility:visible!important}
-.visual-status-fallback .fluid-ink{transform:none!important;filter:none!important}
-
+@media(prefers-reduced-motion:reduce){.fluid-ink{transform:none!important;filter:none!important}.project-plane:not(.is-active){visibility:hidden}.project-plane{will-change:auto}}
 /* Navigation is a flat sibling of the 3D deck, never a moving hit target. */
 .gallery-controls{align-items:center;gap:14px;transform-style:flat}
 .gallery-open-actions{flex:1;justify-content:center;align-items:center;gap:12px!important;transform:none}

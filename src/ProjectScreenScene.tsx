@@ -13,12 +13,12 @@ export type ScreenSceneProps = { position: MotionValue<number>; pointer: Mutable
 function placeholder(project: Project) {
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=800
   const ctx=canvas.getContext('2d')!
-  const gradient=ctx.createLinearGradient(0,0,1280,800);gradient.addColorStop(0,'#24262a');gradient.addColorStop(1,'#101113')
+  const gradient=ctx.createLinearGradient(0,0,1280,800);gradient.addColorStop(0,project.name==='AURA BEAUTY'?'#ede3d2':'#526a99');gradient.addColorStop(1,project.name==='AURA BEAUTY'?'#c4b498':'#233452')
   ctx.fillStyle=gradient;ctx.fillRect(0,0,1280,800)
-  ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;ctx.strokeRect(50,50,1180,700)
-  ctx.fillStyle='#a0a0a0';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText(project.upcoming?'СЛЕДУЮЩАЯ ИСТОРИЯ':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ',640,285)
-  ctx.fillStyle='#f0f0f0';ctx.font='54px Arial';ctx.fillText(project.upcoming?'YOUR NEXT IDEA':project.name,640,405)
-  ctx.fillStyle='#858585';ctx.font='16px Arial';ctx.fillText(project.upcoming?'Место для вашего проекта':'Обложка проекта · не скриншот',640,465)
+  ctx.strokeStyle=project.name==='AURA BEAUTY'?'#5a4d3c66':'#d3e1ff77';ctx.lineWidth=1;ctx.strokeRect(50,50,1180,700)
+  ctx.fillStyle=project.name==='AURA BEAUTY'?'#4f4233':'#dce7fd';ctx.font='15px Arial';ctx.textAlign='center';ctx.fillText(project.upcoming?'СЛЕДУЮЩАЯ ИСТОРИЯ':'ДЕМОНСТРАЦИОННЫЙ ПРОЕКТ',640,285)
+  ctx.fillStyle=project.name==='AURA BEAUTY'?'#2c251e':'#ffffff';ctx.font='54px Arial';ctx.fillText(project.upcoming?'YOUR NEXT IDEA':project.name,640,405)
+  ctx.fillStyle=project.name==='AURA BEAUTY'?'#51422f':'#d2dff5';ctx.font='16px Arial';ctx.fillText(project.upcoming?'Место для вашего проекта':'Обложка проекта · не скриншот',640,465)
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace
   return texture
 }
@@ -55,8 +55,8 @@ function ScreenPanel({ project,index,...props }: ScreenSceneProps & {project:Pro
     group.current.position.y=THREE.MathUtils.lerp(group.current.position.y,props.reduced?0:distance*.12,blend)
     group.current.position.z=THREE.MathUtils.lerp(group.current.position.z,props.reduced?0:-distance*2.8+attention*.28,blend)
     group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x,props.reduced?1:Math.max(.82,1-distance*.065+attention*.03),blend))
-    group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.18*attention,blend)
-    group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.14*attention,blend)
+    group.current.rotation.y=THREE.MathUtils.lerp(group.current.rotation.y,props.reduced?0:offset*-.25+pointer.x*.12*attention,blend)
+    group.current.rotation.x=THREE.MathUtils.lerp(group.current.rotation.x,props.reduced?0:-.025-pointer.y*.10*attention,blend)
     resources.face.opacity=props.reduced?1:Math.max(.5,1-distance*.18)
     resources.body.opacity=props.reduced?1:THREE.MathUtils.clamp(1-distance*.35,.15,1)
   })
@@ -78,7 +78,7 @@ function ScreenWorld(props: ScreenSceneProps) {
   useEffect(()=>props.position.on('change',()=>{if(props.present)invalidate()}),[props.position,props.present,invalidate])
   useFrame((_,delta)=>{
     const p=props.position.get(),dt=Math.min(delta,.05)
-    camera.position.x=props.reduced?0:THREE.MathUtils.damp(camera.position.x,Math.sin(p*Math.PI*.65)*.3,6,dt)
+    camera.position.x=props.reduced?0:THREE.MathUtils.damp(camera.position.x,Math.sin(p*Math.PI*.65)*.18,6,dt)
     camera.position.y=props.reduced?.05:THREE.MathUtils.damp(camera.position.y,.05+Math.sin(p*Math.PI)*.08,6,dt)
     camera.lookAt(0,0,-.2)
   })

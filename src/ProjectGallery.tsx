@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { motion, useMotionValue, useSpring } from 'motion/react'
 import useReducedMotion from './useReducedMotion'
 import { ArrowUpRight } from 'lucide-react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { projects } from './projects'
 import type { Project } from './projects'
 import ProjectScreens from './ProjectScreens'
@@ -17,35 +15,12 @@ function ProjectPlane({ project, active }: { project: Project; active: boolean }
 export default function ProjectGallery({ paused = false }: { paused?: boolean }) {
   const [active, setActive] = useState(0)
   const reduced = !!useReducedMotion()
-  const root = useRef<HTMLDivElement>(null)
-  const trigger = useRef<ScrollTrigger | null>(null)
   const position = useMotionValue(0)
   const smooth = useSpring(position, { stiffness: 160, damping: 32, restDelta: .001 })
-  useEffect(() => {
-    const media = gsap.matchMedia()
-    if (!reduced) media.add('(min-height: 651px)', () => {
-      trigger.current = ScrollTrigger.create({
-        trigger: root.current, start: 'top 90px', end: 'bottom bottom-=50',
-        onUpdate: self => {
-          const value = self.progress * (projects.length - 1)
-          position.set(value)
-          setActive(Math.round(value))
-        },
-      })
-      return () => { trigger.current?.kill(); trigger.current = null }
-    })
-    return () => media.revert()
-  }, [position, reduced])
   const currentProject = projects[active]
-  const select = (index: number) => {
-    const scene = trigger.current
-    if (scene && scene.end > scene.start) {
-      const nextY = scene.start + (scene.end - scene.start) * index / Math.max(projects.length - 1, 1)
-      window.scrollTo({ top: nextY, behavior: 'smooth' })
-    } else { position.set(index); setActive(index) }
-  }
-  return <div ref={root} className="gallery-runway"><div className="gallery-layout">
-    <div className="gallery-index">{projects.map((item, i) => <button key={item.name} className={active === i ? 'selected' : ''} onClick={() => select(i)} aria-pressed={active === i}><span>0{i + 1}</span>{item.name}<ArrowUpRight size={16}/></button>)}<p>Листайте, чтобы пройти галерею.<br/>Или выберите проект напрямую.</p><div className="depth-ruler" aria-hidden="true"><span>NEAR</span><i/><span>FAR</span></div></div>
-    <div className="gallery-perspective"><div className="project-deck"><ProjectScreens position={reduced ? position : smooth} active={active} reduced={reduced} paused={paused}/><div className="project-meta-deck">{projects.map((project, i) => <ProjectPlane key={project.name} project={project} active={active === i}/>)}</div></div><div className="gallery-controls"><span role="status" aria-live="polite">0{active + 1} <span>/ 0{projects.length}</span></span>{currentProject.url && <div className="gallery-open-actions"><a className="gallery-project-visit" href={currentProject.url} rel="noopener noreferrer">Посмотреть сайт<ArrowUpRight size={16}/></a><a className="round-link gallery-round-link" href={currentProject.url} rel="noopener noreferrer" aria-label={`Открыть сайт ${currentProject.name}`}><ArrowUpRight size={19}/></a></div>}<div className="gallery-page-controls"><button aria-label="Предыдущий проект" onClick={() => select((active + projects.length - 1) % projects.length)}>←</button><button aria-label="Следующий проект" onClick={() => select((active + 1) % projects.length)}>→</button></div></div></div>
+  const select = (index: number) => { position.set(index); setActive(index) }
+  return <div className="gallery-runway"><div className="gallery-layout">
+    <div className="gallery-index">{projects.map((item, i) => <button key={item.name} className={active === i ? 'selected' : ''} onClick={() => select(i)} aria-pressed={active === i}><span>0{i + 1}</span>{item.name}<ArrowUpRight size={16}/></button>)}<p>Выберите проект.<br/>Рассмотрите его под новым углом.</p><div className="depth-ruler" aria-hidden="true"><span>NEAR</span><i/><span>FAR</span></div></div>
+    <div className="gallery-perspective"><div className="project-deck"><ProjectScreens position={reduced ? position : smooth} active={active} reduced={reduced} paused={paused}/><div className="project-meta-deck">{projects.map((project, i) => <ProjectPlane key={project.name} project={project} active={active === i}/>)}</div></div><div className="gallery-controls"><span role="status" aria-live="polite">0{active + 1} <span>/ 0{projects.length}</span></span><div className="gallery-open-actions"><a className="gallery-project-visit" href={currentProject.url || '#contact'} rel="noopener noreferrer">{currentProject.upcoming ? 'Обсудить идею' : 'Посмотреть сайт'}<ArrowUpRight size={16}/></a><a className="round-link gallery-round-link" href={currentProject.url || '#contact'} rel="noopener noreferrer" aria-label={currentProject.upcoming ? 'Связаться по поводу нового проекта' : `Открыть сайт ${currentProject.name}`}><ArrowUpRight size={19}/></a></div><div className="gallery-page-controls"><button aria-label="Предыдущий проект" onClick={() => select((active + projects.length - 1) % projects.length)}>←</button><button aria-label="Следующий проект" onClick={() => select((active + 1) % projects.length)}>→</button></div></div></div>
   </div></div>
 }

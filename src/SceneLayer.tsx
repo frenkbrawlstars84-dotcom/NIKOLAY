@@ -1,5 +1,5 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode, RefObject } from 'react'
+import type { ReactNode } from 'react'
 import SceneFallback from './SceneFallback'
 
 const Scene = lazy(() => import('./Scene'))
@@ -13,9 +13,9 @@ class SceneBoundary extends Component<{ children: ReactNode; onFailure: () => vo
   render() { return this.state.failed ? <SceneFallback /> : this.props.children }
 }
 
-export default function SceneLayer({ progress, reduced, paused, anchor, onStatus }: {
-  progress: RefObject<number>; reduced: boolean; paused: boolean
-  anchor: RefObject<HTMLDivElement | null>; onStatus: (status: SceneStatus) => void
+export default function SceneLayer({ reduced, paused, enabled, onStatus }: {
+  reduced: boolean; paused: boolean; enabled: boolean
+  onStatus: (status: SceneStatus) => void
 }) {
   const [status, setStatus] = useState<SceneStatus>('loading')
   const phase = useRef<SceneStatus>('loading')
@@ -28,14 +28,14 @@ export default function SceneLayer({ progress, reduced, paused, anchor, onStatus
     phase.current = 'ready'; setStatus('ready'); onStatus('ready')
   }, [onStatus])
   useEffect(() => {
-    if (status !== 'loading') return
+    if (!enabled || status !== 'loading') return
     // Slow/blocked imports and a renderer that never draws cannot hold the page.
     const timeout = window.setTimeout(fail, 10_000)
     return () => clearTimeout(timeout)
-  }, [status, fail])
+  }, [enabled, status, fail])
   return <div className="scene-layer" data-scene-status={status}>
-    {status === 'fallback' ? <SceneFallback /> : <SceneBoundary onFailure={fail}>
-      <Suspense fallback={<SceneFallback />}><Scene progress={progress} reduced={reduced} paused={paused} anchor={anchor} onReady={ready} onUnavailable={fail}/></Suspense>
+    {!enabled || status === 'fallback' ? <SceneFallback /> : <SceneBoundary onFailure={fail}>
+      <Suspense fallback={<SceneFallback />}><Scene reduced={reduced} paused={paused} onReady={ready} onUnavailable={fail}/></Suspense>
     </SceneBoundary>}
   </div>
 }

@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { introFrame } from './introTimeline'
 
 const fullscreenVertex = `varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}`
 const rayFragment = `
-  // TON_RAY_SCENE: analytic gravitational lensing of a procedural 3D accretion disk.
+  // TON_RAY_SCENE: existing analytic disk, reused only for the timed introduction.
   uniform vec3 uEye;
   uniform float uTime;
   uniform float uAspect;
@@ -43,19 +44,19 @@ const rayFragment = `
     float edge=smoothstep(1.43,1.85,r)*(1.-smoothstep(5.5,7.,r));
     vec2 plane=vec2(p.x,dot(p,normalize(cross(normal,vec3(1,0,0)))));
     // Rotate the unit vector directly: avoid atan -> sin/cos round trips.
-    float spin=uTime*.12/(r*sqrt(r))+r*.2;
+    float spin=uTime*.24/(r*sqrt(r))+r*.13;
     float cs=cos(spin),sn=sin(spin);
     vec2 orbit=mat2(cs,-sn,sn,cs)*(plane/r);
-    float clouds=fbm(orbit*r*2.6);
+    float clouds=fbm(orbit*r*2.2+fbm(plane*.7)*1.5);
     // Uneven orbital filaments retain texture at close range without cloudy,
     // screen-space blur. Exposure is bounded before adding the small glow.
     vec2 flow=orbit*r;
-    float filaments=fbm(vec2(flow.x*10.+flow.y*1.4,flow.y*2.1-flow.x*.3)+clouds*1.3);
-    float detail=noise(orbit*r*27.);
-    float density=.16+pow(clouds,1.6)*.6+pow(filaments,2.2)*.65+pow(detail,6.)*.07;
+    float filaments=fbm(vec2(flow.x*5.7+flow.y*1.4,flow.y*2.3-flow.x*.3)+clouds*1.3);
+    float detail=noise(orbit*r*15.);
+    float density=.08+pow(clouds,1.7)*.85+pow(filaments,2.8)*.85+pow(detail,6.)*.05;
     float radial=exp(-pow((r-2.9)*.29,2.));
     vec3 tangent=normalize(cross(normal,p));
-    float doppler=.82+.24*dot(tangent,-direction);
+    float doppler=.86+.38*dot(tangent,-direction);
     float thickness=clamp(.14/max(abs(dot(direction,normal)),.16),.25,.88);
     return edge*density*radial*doppler*thickness;
   }
@@ -91,7 +92,7 @@ const rayFragment = `
     float light=direct*.82+lensed*.68+photon;
     vec3 bent=normalize(vec3(direction.xy*(1.-critical*critical/max(impact*impact,1.)*.5),direction.z));
     vec3 background=sky(bent)*outside;
-    vec3 emission=vec3(.92*(1.-exp(-light*2.05)));
+    vec3 emission=vec3(.83,.89,1.)*(1.-exp(-light*2.3));
     gl_FragColor=vec4(background+emission,1);
   }
 
@@ -114,9 +115,9 @@ const bloomFragment = `
     gl_FragColor=vec4(color+glow,uOpacity);
   }
 `
-export default function BlackHole({ progress, clock, low, onUnavailable }: { progress: RefObject<number>; clock: RefObject<number>; low: boolean; onUnavailable: () => void }) {
+export default function BlackHole({ elapsed, low, onUnavailable }: { elapsed: RefObject<number>; low: boolean; onUnavailable: () => void }) {
   const mesh = useRef<THREE.Mesh>(null)
-  const { gl, camera, size, viewport } = useThree()
+  const { gl, size, viewport } = useThree()
   const checked = useRef(false)
   const resources = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(2,2)
@@ -140,12 +141,12 @@ export default function BlackHole({ progress, clock, low, onUnavailable }: { pro
   // resources can be recreated, but a cleared graph would stay empty.
   useEffect(()=>()=>{resources.target.dispose();resources.ray.dispose();resources.composite.dispose();resources.geometry.dispose()},[resources])
   useFrame(()=>{
-    const p=progress.current,active=p>.26&&p<.999
+    const state=introFrame(elapsed.current),active=state.hole>0
     if(mesh.current)mesh.current.visible=active
     if(!active)return
-    resources.ray.uniforms.uEye.value.copy(camera.position);resources.ray.uniforms.uEye.value.z+=24
-    resources.ray.uniforms.uTime.value=clock.current;resources.ray.uniforms.uAspect.value=size.width/size.height
-    resources.composite.uniforms.uOpacity.value=THREE.MathUtils.smoothstep(p,.32,.56)*(1-THREE.MathUtils.smoothstep(p,.975,1))
+    resources.ray.uniforms.uEye.value.set(0,0,state.eye)
+    resources.ray.uniforms.uTime.value=elapsed.current;resources.ray.uniforms.uAspect.value=size.width/size.height
+    resources.composite.uniforms.uOpacity.value=state.hole
     const previous=gl.getRenderTarget()
     try{
       gl.setRenderTarget(resources.target)

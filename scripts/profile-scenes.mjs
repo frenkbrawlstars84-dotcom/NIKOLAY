@@ -10,6 +10,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:1000},deviceScaleFactor:1})
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())})
   await page.addInitScript(()=>{
+    sessionStorage.setItem('nikolay:intro-seen','1')
     window.__profile={selector:null,frames:[],raf:[],longTasks:[],start:0}
     const targets=new WeakMap(),proto=WebGL2RenderingContext.prototype,bind=proto.bindFramebuffer,clear=proto.clear
     proto.bindFramebuffer=function(target,buffer){if(target===this.FRAMEBUFFER||target===this.DRAW_FRAMEBUFFER)targets.set(this,buffer);return bind.call(this,target,buffer)}
@@ -28,9 +29,8 @@ try{
     const result=await page.evaluate(()=>{const p=window.__profile,end=performance.now();p.selector=null;const gaps=p.frames.slice(1).map((v,i)=>v-p.frames[i]).sort((a,b)=>a-b);return{durationMs:end-p.start,frames:p.frames.length,fps:p.frames.length*1000/(end-p.start),raf:p.raf.length,medianMs:gaps[Math.floor(gaps.length*.5)],p95Ms:gaps[Math.floor(gaps.length*.95)],longTasks:p.longTasks}})
     const after=await metrics();return{...result,scriptMs:(after.ScriptDuration-before.ScriptDuration)*1000,layoutMs:(after.LayoutDuration-before.LayoutDuration)*1000,taskMs:(after.TaskDuration-before.TaskDuration)*1000}
   }
-  await page.evaluate(()=>{const r=document.querySelector('.experience-track').getBoundingClientRect();scrollTo(0,scrollY+r.top+(r.height-innerHeight)*.64)});await page.waitForTimeout(1200)
-  const ton=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-ton-${tag}.png`)})
+  const hero=await sample('.experience-art');await page.screenshot({path:join(output,`nikolay-hero-${tag}.png`)})
   await page.locator('.accent-cube').scrollIntoViewIfNeeded();await page.locator('.accent-cube[data-accent-status="ready"]').waitFor({timeout:20000});await page.waitForTimeout(1000)
   const cube=await sample('.accent-cube');await page.locator('.accent-cube').screenshot({path:join(output,`nikolay-cube-${tag}.png`)})
-  const report={tag,renderer,ton,cube,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
+  const report={tag,renderer,hero,cube,errors,reportPath:join(output,`nikolay-profile-${tag}.json`)};await writeFile(report.reportPath,JSON.stringify(report,null,2));console.log(JSON.stringify(report))
 }finally{await browser.close()}

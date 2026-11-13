@@ -1,0 +1,62 @@
+{
+  "tag": "final",
+  "renderer": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "gpuTimers": false
+  },
+  "hero": {
+    "durationMs": 3515.8000000000466,
+    "frames": 209,
+    "fps": 59.445929802604596,
+    "raf": 209,
+    "medianMs": 16.699999999953434,
+    "p95Ms": 19.100000000093132,
+    "longTasks": [],
+    "scriptMs": 91.81500000000004,
+    "layoutMs": 2.231000000000004,
+    "taskMs": 3096.183
+  },
+  "cube": {
+    "durationMs": 3571.2000000001863,
+    "frames": 30,
+    "fps": 8.400537634408163,
+    "raf": 30,
+    "medianMs": 113.69999999995343,
+    "p95Ms": 172.79999999981374,
+    "longTasks": [
+      104,
+      137,
+      117,
+      125,
+      135,
+      109,
+      103,
+      112,
+      85,
+      74,
+      94,
+      90,
+      99,
+      109,
+      132,
+      114,
+      91,
+      105,
+      120,
+      122,
+      126,
+      114,
+      95,
+      112,
+      108,
+      138,
+      98,
+      93,
+      98
+    ],
+    "scriptMs": 20.44200000000007,
+    "layoutMs": 0,
+    "taskMs": 3504.958
+  },
+  "errors": []
+}
