@@ -27,6 +27,14 @@ jobs:
           npm run capture:projects || echo "Public demo capture unavailable; using design covers"
       - name: Verify build and site behavior
         run: npm run test:browser
+      - name: Save preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nikolay-preview-screenshots
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Package ready-to-publish Netlify site
         uses: actions/upload-artifact@v4
         with:
