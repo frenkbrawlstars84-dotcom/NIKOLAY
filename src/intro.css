@@ -1,12 +1,55 @@
-/* Visible immediately, including before the lazy WebGL module is ready. */
-.cosmic-intro{position:fixed;inset:0;z-index:1000;background:#050609;color:#edf1f8;isolation:isolate}
-.cosmic-intro>div:not(.intro-label){position:absolute;inset:0}
-.intro-static{z-index:-1;background:#050609}
-.intro-static svg{height:100%;width:100%;opacity:.85}
-.intro-ready .intro-static{visibility:hidden}
-.intro-label{position:absolute;left:clamp(22px,4vw,64px);bottom:34px;font-size:13px;font-weight:600;letter-spacing:3px;pointer-events:none}
-.intro-label span{display:block;margin-top:8px;font-size:7px;font-weight:400;letter-spacing:2px;color:#aebbd1}
-.intro-skip{position:absolute;right:clamp(22px,4vw,64px);bottom:28px;padding:14px 18px;display:flex;gap:30px;align-items:center;font-size:12px;border:1px solid #b9c6df66;border-radius:3px;background:#0b0e16c9;color:#edf1f8;z-index:2}
-.intro-skip:hover{border-color:#e0e8fa;background:#161e2d}
-.intro-skip:focus-visible{outline:2px solid #edf1f8;outline-offset:4px}
-@media(max-width:680px){.intro-label{bottom:30px;font-size:11px}.intro-label span{font-size:6px}.intro-skip{bottom:22px;gap:18px}}
+/* Sharp, deterministic vector intro. No textures, images, shader compilation or GPU startup. */
+.cosmic-intro{
+  position:fixed;inset:0;z-index:1000;overflow:hidden;color:#f6f7f9;
+  background:radial-gradient(ellipse at 65% 48%,#151922 0%,#07090d 46%,#030405 85%);
+  isolation:isolate;
+}
+.intro-grain{
+  position:absolute;inset:0;pointer-events:none;opacity:.23;
+  background-image:radial-gradient(circle,#fff 1px,transparent 1.6px),radial-gradient(circle,#dce9ff .7px,transparent 1.2px);
+  background-size:137px 113px,197px 169px;background-position:14px 22px,72px 88px;
+  mask-image:radial-gradient(ellipse at 65% 40%,black,transparent 80%);
+}
+.intro-vortex{
+  position:absolute;top:50%;left:58%;width:min(112vmin,1100px);aspect-ratio:1;
+  transform:translate(-50%,-50%) scale(.93);
+  animation:intro-vortex-in 1.6s cubic-bezier(.12,.75,.25,1) both;
+  filter:drop-shadow(0 0 24px #edf4ff16);
+  pointer-events:none;will-change:transform,opacity;
+}
+.intro-vortex svg{width:100%;height:100%;display:block}
+.intro-strands{transform-origin:500px 500px;animation:intro-orbit 12s linear infinite}
+.intro-brand{position:absolute;top:clamp(25px,4vw,55px);left:clamp(24px,6vw,95px);font-size:19px;letter-spacing:-.9px;font-weight:700}
+.intro-brand span{display:block;font-size:7px;font-weight:400;letter-spacing:3px;color:#a8afb9;margin-top:7px}
+.intro-message{position:absolute;top:50%;left:clamp(24px,8vw,130px);width:min(51%,740px);transform:translateY(-45%);z-index:2;pointer-events:none}
+.intro-message:before{content:'';position:absolute;inset:-65px -90px;z-index:-1;pointer-events:none;
+ background:radial-gradient(ellipse at 35% 50%,#050609f2 0%,#050609b3 49%,transparent 79%)}
+.intro-message p{margin:0 0 20px;font-size:10px;letter-spacing:2.5px;color:#a7b2c3}
+.intro-message h2{margin:0;font-size:clamp(48px,7.6vw,120px);line-height:.99;letter-spacing:-.065em;font-weight:500}
+.intro-message h2 em{font-family:Georgia,serif;color:#c2c9d5;font-weight:400;letter-spacing:-.06em}
+.intro-message>span{display:block;margin-top:25px;font-size:12px;color:#a1aaba;letter-spacing:.03em}
+.intro-progress{position:absolute;bottom:34px;left:clamp(24px,6vw,95px);right:clamp(24px,6vw,95px);height:1px;background:#cbd4e430;overflow:hidden}
+.intro-progress i{display:block;width:100%;height:100%;background:#e6ecf9;transform-origin:left;animation:intro-load 2s ease-out both}
+.intro-skip{position:absolute;bottom:52px;right:clamp(24px,6vw,95px);display:flex;align-items:center;gap:18px;
+  padding:11px 0;border:0;background:transparent;color:#e6eaf1;font-size:11px;letter-spacing:.05em;z-index:5}
+.intro-skip:hover{color:white}
+.intro-skip:focus-visible{outline:2px solid white;outline-offset:8px}
+.cosmic-intro.is-leaving{animation:intro-dismiss .7s ease-in-out forwards}
+.cosmic-intro.is-leaving .intro-vortex{animation:intro-depart .7s cubic-bezier(.2,.3,.9,1) forwards}
+@keyframes intro-vortex-in{from{opacity:0;transform:translate(-50%,-50%) scale(.73) rotate(-20deg)}to{opacity:1;transform:translate(-50%,-50%) scale(.93) rotate(0)}}
+@keyframes intro-orbit{to{transform:rotate(360deg)}}
+@keyframes intro-load{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes intro-depart{to{transform:translate(-50%,-50%) scale(2.2) rotate(45deg);opacity:.3}}
+@keyframes intro-dismiss{to{opacity:0;visibility:hidden}}
+@media(max-width:740px){
+  .intro-vortex{top:38%;left:54%;width:110vmax;opacity:.58}
+  .intro-message{left:24px;top:57%;width:calc(100% - 48px);transform:none}
+  .intro-message:before{inset:-30px;background:linear-gradient(90deg,#050609e8,transparent)}
+  .intro-message h2{font-size:clamp(48px,13vw,78px)}
+  .intro-message p{font-size:8px}
+  .intro-message>span{font-size:10px;margin-top:17px}
+  .intro-skip{bottom:56px}
+}
+@media(prefers-reduced-motion:reduce){
+  .intro-vortex,.intro-strands,.intro-progress i{animation:none!important}
+}
