@@ -68,3 +68,19 @@ test('idle-to-turn boundary uses only the remaining fraction of a frame',()=>{
  const before=JSON.stringify(model.cells);model.advance(.2)
  assert.equal(JSON.stringify(model.cells),before,'The completed layer stays still during the next pause')
 })
+
+test('every short scramble is followed by its exact inverse and a solved pause',()=>{
+ const model=new RubikController()
+ assert(model.duration>=.25&&model.duration<=.35)
+ for(let cycle=1;cycle<=5;cycle++) {
+  for(let frame=0;model.completedCycles<cycle&&frame<2000;frame++) model.advance(1/120)
+  assert.equal(model.completedCycles,cycle)
+  assert.equal(model.completedTurns,cycle*12)
+  assert.equal(model.active,null)
+  for(const cell of model.cells){assert.deepEqual(cell.position,cell.home);assert.deepEqual(cell.orientation,identity)}
+  const before=JSON.stringify(model.cells)
+  model.advance(model.pause/2)
+  assert.equal(JSON.stringify(model.cells),before)
+  assert.equal(model.active,null,'Solved cube holds still before the next scramble')
+ }
+})

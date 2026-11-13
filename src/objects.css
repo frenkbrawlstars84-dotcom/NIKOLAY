@@ -45,3 +45,15 @@
   .project-meta-deck .project-info p{font-size:11px;line-height:1.6}
   .gallery-controls{padding-top:8px}
 }
+
+/* Covers stay explicitly labelled; no exposure or dark overlay on real captures. */
+.screen-static-fallback.cover-aura{background:linear-gradient(135deg,#ede3d2,#c4b498);color:#2c251e;border-color:#b6a78c}
+.screen-static-fallback.cover-aura>span,.screen-static-fallback.cover-aura>small{color:#51422f}
+.screen-static-fallback.cover-digital{background:linear-gradient(135deg,#526a99,#233452);color:#fff}
+.screen-static-fallback.cover-digital>span,.screen-static-fallback.cover-digital>small{color:#d2dff5}
+.project-screens{height:clamp(300px,38vw,550px)}
+@media(max-width:680px){.project-screens{height:clamp(235px,74vw,335px)}}
+
+.screen-render-layer{position:absolute;inset:0}
+.screen-static-fallback{z-index:1;pointer-events:none}
+.screen-static-fallback img{position:absolute;inset:0;object-fit:contain;background:#151619;border-radius:6px;z-index:1}

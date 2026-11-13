@@ -8,5 +8,5 @@ const screenshot=(key:string,source:string)=>captures.images[key]?.source===sour
 export const projects: Project[] = [
   { name: 'AURA BEAUTY', description: 'Демонстрационный сайт для салона красоты.', category: 'Красота / Демопроект', technologies: [], demo: true, url: 'https://amazing-pony-95fbe1.netlify.app/',image:screenshot('aura','https://amazing-pony-95fbe1.netlify.app/') },
   { name: 'NEXORA DIGITAL', description: 'Демонстрационный сайт NEXORA DIGITAL.', category: 'Digital / Демопроект', technologies: [], demo: true, url: 'https://lambent-pudding-e679ea.netlify.app/',image:screenshot('nexora','https://lambent-pudding-e679ea.netlify.app/') },
-  { name: 'Следующая история', description: 'Место для нового проекта. Возможно, вашего.', category: 'Скоро в портфолио', technologies: [], upcoming: true },
+  { name: 'YOUR NEXT IDEA', description: 'Место для нового проекта. Возможно, вашего.', category: 'Скоро в портфолио', technologies: [], upcoming: true },
 ]

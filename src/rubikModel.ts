@@ -30,15 +30,18 @@ const sequence: Move[] = [
   { axis: 'y', layer: 1, direction: 1 }, { axis: 'x', layer: 1, direction: -1 }, { axis: 'z', layer: -1, direction: 1 },
   { axis: 'y', layer: -1, direction: -1 }, { axis: 'x', layer: -1, direction: 1 }, { axis: 'z', layer: 1, direction: -1 },
 ]
+const cycle: Move[] = [...sequence, ...sequence.slice().reverse().map(move => ({ ...move, direction: -move.direction as -1 | 1 }))]
 export class RubikController {
   cells = createCube()
-  active: { move: Move; elapsed: number } | null = null
+  active: { move: Move; elapsed: number; automatic?: boolean } | null = null
   queue: Move[] = []
   completedTurns = 0
   idle = 0
   sequenceIndex = 0
-  readonly duration = 1.8
-  readonly pause = 6.5
+  completedCycles = 0
+  readonly duration = .3
+  readonly pause = 1.15
+  readonly turnGap = .065
   request(move: Move = { axis: 'y', layer: 1, direction: 1 }) {
     if (this.queue.length < 8) this.queue.push(move)
   }
@@ -52,20 +55,24 @@ export class RubikController {
     let remaining = Math.min(delta, 60)
     // Consume only the time belonging to each phase. Carry the remainder
     // across boundaries so irregular frame intervals cannot shift or jump turns.
-    for (let step=0; step<32 && remaining>1e-10; step++) {
+    for (let step=0; step<512 && remaining>1e-10; step++) {
       if (!this.active) {
         if (this.queue.length) this.active = { move: this.queue.shift()!, elapsed: 0 }
         else if (automatic) {
-          const consumed=Math.min(remaining,this.pause-this.idle)
+          const wait=this.sequenceIndex===0?this.pause:this.turnGap
+          const consumed=Math.min(remaining,wait-this.idle)
           this.idle+=consumed; remaining-=consumed
-          if(this.idle<this.pause-1e-10)return
-          this.active={move:sequence[this.sequenceIndex++ % sequence.length],elapsed:0};this.idle=0
+          if(this.idle<wait-1e-10)return
+          this.active={move:cycle[this.sequenceIndex],elapsed:0,automatic:true}
+          this.sequenceIndex=(this.sequenceIndex+1)%cycle.length;this.idle=0
         } else return
       }
       const consumed=Math.min(remaining,this.duration-this.active.elapsed)
       this.active.elapsed+=consumed;remaining-=consumed
       if(this.active.elapsed<this.duration-1e-10)return
-      commitTurn(this.cells,this.active.move);this.completedTurns++;this.active=null;this.idle=0
+      commitTurn(this.cells,this.active.move);this.completedTurns++
+      if(this.active.automatic&&this.sequenceIndex===0)this.completedCycles++
+      this.active=null;this.idle=0
     }
   }
   get angle() {

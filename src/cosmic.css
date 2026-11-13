@@ -2,11 +2,11 @@
 .ambient-background{opacity:1}
 .header{background:#090b10db;border-bottom-color:#8aa9d325}
 .brand>span{color:#aebfd7}
-.experience-pin{background:#090b10a6}
+
 .experience-art::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 76% 48%,#5f78ad12,transparent 52%);z-index:-1}
 .hero-copy{background:transparent}
 .hero-copy::before{inset:-70px -50px;background:radial-gradient(ellipse at 30% 50%,#090b10fa 0%,#090b10eb 46%,#090b1080 61%,transparent 78%)}
-.experience-pin .hero-foot{background:#090b10b8}
+.hero-foot{background:#090b10b8}
 .about{background:linear-gradient(180deg,#090b10e8,#090b10a8 60%,#090b10b3)}
 .about .about-sign{color:#9eacc2}
 .work .section-label,.capabilities .section-label{color:#8b9bb3}
@@ -25,8 +25,8 @@
 .contact-title{z-index:1}
 .contact-bottom{align-items:center;position:relative;z-index:2}
 .contact-bottom>p{max-width:300px;flex-shrink:0}
-.contact-cube-layout{display:grid;grid-template-columns:minmax(0,400px) minmax(250px,1fr);gap:32px;align-items:center;margin-left:auto;min-width:0}
-.accent-cube{width:400px;justify-self:center;margin-inline:auto}
+.contact-cube-layout{display:grid;grid-template-columns:minmax(0,350px) minmax(230px,1fr);gap:24px;align-items:center;margin-left:auto;min-width:0}
+.accent-cube{width:350px;justify-self:center;margin-inline:auto}
 .accent-cube .accent-stage{height:auto;aspect-ratio:25/27}
 .accent-cube figcaption{margin-top:-8px;font-size:5.5px;letter-spacing:1.4px}
 .contact-cube-layout .contact-links{min-width:0;gap:23px}
@@ -61,12 +61,5 @@
   .contact-bottom>p{max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){.accent-object{animation:none!important;transition:none!important}}
-/* TON 618 stays inside the existing pinned passage and never covers the hero copy. */
-.ton-caption{position:absolute;left:0;right:0;bottom:15%;z-index:3;text-align:center;opacity:0;pointer-events:none}
-.ton-caption strong{display:block;font-size:11px;letter-spacing:5px;font-weight:400;color:#eeeeee}
-.ton-caption span{display:inline-block;margin-top:12px;padding:7px 10px;background:#0009;font-size:6px;letter-spacing:2.5px;color:#aaa}
-.horizon-shade{position:absolute;inset:0;background:#000;z-index:1;opacity:0;pointer-events:none}
 .work{perspective:1400px}
 .accent-cube .accent-stage::before{background:radial-gradient(ellipse,#ffffff0c,transparent 68%)}
-@media(max-height:650px),(prefers-reduced-motion:reduce){.ton-caption,.horizon-shade{display:none}}
-.site-root:not(.visual-status-ready) .ton-caption,.site-root:not(.visual-status-ready) .horizon-shade{display:none}
